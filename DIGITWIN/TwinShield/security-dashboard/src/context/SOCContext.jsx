@@ -76,6 +76,84 @@ export const SOCProvider = ({ children }) => {
         accessesCount: 45,
         resourceAccessed: '/api/v1/reports/manager-summary'
       }
+    },
+    {
+      id: 'EMP3099',
+      name: 'Alex Vance (Synthetic)',
+      role: 'System Administrator',
+      department: 'IT Infrastructure',
+      riskScore: 22.0,
+      status: 'NORMAL',
+      currentThreat: 'NONE',
+      sessionId: 'SESS-3099-GAMMA',
+      device: 'ADMIN-PC-3099',
+      location: 'Mumbai Data Center',
+      expectedBehavior: {
+        workingHours: '09:00 - 18:00 IST',
+        device: 'ADMIN-PC-3099',
+        location: 'Mumbai Data Center',
+        avgDailyAccesses: 50,
+        typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
+      },
+      currentBehavior: {
+        loginTime: '09:30 AM (Normal)',
+        device: 'ADMIN-PC-3099 (Known)',
+        location: 'Mumbai Data Center (Normal)',
+        accessesCount: 28,
+        resourceAccessed: '/api/v1/reports/manager-summary'
+      }
+    },
+    {
+      id: 'EMP4088',
+      name: 'Michael Chen (Synthetic)',
+      role: 'Compliance Officer',
+      department: 'Legal & Compliance',
+      riskScore: 35.5,
+      status: 'NORMAL',
+      currentThreat: 'NONE',
+      sessionId: 'SESS-4088-DELTA',
+      device: 'COMPLIANCE-PC-4088',
+      location: 'Bengaluru Office',
+      expectedBehavior: {
+        workingHours: '09:00 - 17:00 IST',
+        device: 'COMPLIANCE-PC-4088',
+        location: 'Bengaluru Office',
+        avgDailyAccesses: 30,
+        typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
+      },
+      currentBehavior: {
+        loginTime: '08:45 AM (Normal)',
+        device: 'COMPLIANCE-PC-4088 (Known)',
+        location: 'Bengaluru Office (Normal)',
+        accessesCount: 18,
+        resourceAccessed: '/api/v1/customer/profile'
+      }
+    },
+    {
+      id: 'EMP5012',
+      name: 'Priya Sharma (Synthetic)',
+      role: 'Senior Teller',
+      department: 'Treasury Operations',
+      riskScore: 12.0,
+      status: 'NORMAL',
+      currentThreat: 'NONE',
+      sessionId: 'SESS-5012-EPSILON',
+      device: 'TELLER-PC-5012',
+      location: 'Chennai Office',
+      expectedBehavior: {
+        workingHours: '08:00 - 16:00 IST',
+        device: 'TELLER-PC-5012',
+        location: 'Chennai Office',
+        avgDailyAccesses: 20,
+        typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
+      },
+      currentBehavior: {
+        loginTime: '08:05 AM (Normal)',
+        device: 'TELLER-PC-5012 (Known)',
+        location: 'Chennai Office (Normal)',
+        accessesCount: 12,
+        resourceAccessed: '/api/v1/transactions/search'
+      }
     }
   ]);
 
@@ -85,14 +163,25 @@ export const SOCProvider = ({ children }) => {
       employeeId: 'EMP8842',
       employeeName: 'David Wallace (Synthetic)',
       riskScore: 96.2,
-      reason: 'Bulk Decoy Vault Access & Privilege Abuse',
+      reason: 'Bulk Decoy Executive Vault Access & Privilege Abuse',
       isolatedAt: '08:12:10 IST',
+      status: 'ISOLATED'
+    },
+    {
+      sessionId: 'SESS-1024-ALPHA',
+      employeeId: 'EMP1024',
+      employeeName: 'John Doe (Synthetic)',
+      riskScore: 97.6,
+      reason: 'Automated Containment: Anomaly vector 97.6% crossed 95% threshold',
+      isolatedAt: '23:47:00 IST',
       status: 'ISOLATED'
     }
   ]);
 
   const [auditLogs, setAuditLogs] = useState([
-    { id: 1, timestamp: '09:47:05', actor: 'SYSTEM (Automated Policy)', action: 'AUTOMATED_SESSION_ISOLATION', target: 'Session SESS-1024-ALPHA', details: 'Triggered by Risk Score 97.6% (>95% Critical Threshold)' }
+    { id: 1001, timestamp: '23:47:05', actor: 'SYSTEM (Zero-Trust Engine)', action: 'AUTOMATED_SESSION_ISOLATION', target: 'Session SESS-1024-ALPHA', details: 'Triggered by Risk Score 97.6% (>95% Critical Threshold)', hash: '0x7f8a3c9b2d1e4f5a' },
+    { id: 1002, timestamp: '08:12:15', actor: 'SYSTEM (Zero-Trust Engine)', action: 'AUTOMATED_SESSION_ISOLATION', target: 'Session SESS-9942-OMEGA', details: 'Triggered by Decoy Honey Token Access', hash: '0x3e2b1c4a5f6d7e8f' },
+    { id: 1003, timestamp: '08:15:22', actor: 'SOC Analyst (ID: SOC-04)', action: 'INVESTIGATION_FILE_OPENED', target: 'Incident INC-2026-001', details: 'Forensic telemetry audit initiated', hash: '0x9a8b7c6d5e4f3a2b' }
   ]);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('EMP1024');
@@ -370,7 +459,9 @@ const formatTimestamp = (rawDate) => {
     const empId = employeeId || (sessionId && sessionId.includes('1024') ? 'EMP1024' : 'EMP1024');
     try {
       await fetch(`http://localhost:8080/api/isolation/restore?sessionId=${sessionId}&actorId=SOC_ANALYST`, { method: 'POST' });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to restore session via API:', e);
+    }
 
     setIsolatedSessions((prev) =>
       prev.map((s) => {
@@ -423,7 +514,9 @@ const formatTimestamp = (rawDate) => {
     const empId = employeeId || 'EMP1024';
     try {
       await fetch(`http://localhost:8080/api/isolation/require-mfa?sessionId=${sessionId}&actorId=SOC_ANALYST`, { method: 'POST' });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to require MFA via API:', e);
+    }
     setIsolatedSessions((prev) => prev.map((s) => (s.sessionId === sessionId || s.employeeId === empId) ? { ...s, status: 'STEP_UP_MFA' } : s));
     setAuditLogs((prev) => [{ id: Date.now(), timestamp: new Date().toLocaleTimeString(), actor: 'SOC Analyst', action: 'REQUIRE_MFA', target: `Employee ${empId}`, details: 'Enforced mandatory step-up re-authentication' }, ...prev]);
   };
@@ -436,7 +529,9 @@ const formatTimestamp = (rawDate) => {
     const empId = employeeId || 'EMP1024';
     try {
       await fetch(`http://localhost:8080/api/isolation/disable-account?employeeId=${empId}&actorId=SOC_ANALYST`, { method: 'POST' });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to disable account via API:', e);
+    }
     setIsolatedSessions((prev) => prev.map((s) => (s.sessionId === sessionId || s.employeeId === empId) ? { ...s, status: 'ACCOUNT_DISABLED' } : s));
     setEmployees((prev) => prev.map((e) => (e.id === empId || e.sessionId === sessionId) ? { ...e, status: 'SUSPENDED', riskScore: 100.0 } : e));
     setAuditLogs((prev) => [{ id: Date.now(), timestamp: new Date().toLocaleTimeString(), actor: 'SOC Analyst', action: 'DISABLE_ACCOUNT', target: `Employee ${empId}`, details: 'Account permanently suspended due to malicious threat' }, ...prev]);

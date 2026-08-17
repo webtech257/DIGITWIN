@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { KeyRound, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 
-export const MFAChallengeScreen = ({ session, currentUser, onCompleteMfa }) => {
+export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
 

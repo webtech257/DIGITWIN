@@ -18,9 +18,10 @@ public class SecurityEventWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
         System.out.println("🟢 Real-Time SOC WebSocket Connected: Session ID=" + session.getId());
-        
+
         // Send initial connection ACK
-        session.sendMessage(new TextMessage("{\"type\":\"SYSTEM_CONNECTED\",\"status\":\"LIVE\",\"message\":\"TwinShield Security Stream Connected\"}"));
+        session.sendMessage(new TextMessage(
+                "{\"type\":\"SYSTEM_CONNECTED\",\"status\":\"LIVE\",\"message\":\"TwinShield Security Stream Connected\"}"));
     }
 
     @Override

@@ -61,10 +61,21 @@ public class IsolationService {
         boolean shouldIsolate = riskScore >= CRITICAL_THRESHOLD || req.isDecoyAccess();
 
         if (shouldIsolate) {
-            // 1. Mark session as ISOLATED & revoke active status
+            // 1. Mark session as ISOLATED & revoke active status across all employee sessions
             session.setStatus("ISOLATED");
             session.setLastActivityTime(LocalDateTime.now());
             sessionRepository.save(session);
+
+            if (employee != null) {
+                List<Session> empSessions = sessionRepository.findAll().stream()
+                        .filter(s -> s.getEmployee() != null && s.getEmployee().getId().equalsIgnoreCase(employee.getId()))
+                        .toList();
+                for (Session s : empSessions) {
+                    s.setStatus("ISOLATED");
+                    s.setLastActivityTime(LocalDateTime.now());
+                    sessionRepository.save(s);
+                }
+            }
 
             // 2. Create Security Incident
             String incidentCode = "INC-" + System.currentTimeMillis();
@@ -122,13 +133,28 @@ public class IsolationService {
         return result;
     }
 
+    private boolean isSessionMatch(Session s, String targetId) {
+        if (s == null || targetId == null) return false;
+        String tid = targetId.trim().toUpperCase();
+        String sid = s.getSessionId() != null ? s.getSessionId().toUpperCase() : "";
+        String eid = s.getEmployee() != null ? s.getEmployee().getId().toUpperCase() : "";
+        String numOnlyTid = tid.replaceAll("[^0-9]", "");
+        String numOnlyEid = eid.replaceAll("[^0-9]", "");
+        String numOnlySid = sid.replaceAll("[^0-9]", "");
+
+        return sid.equals(tid) ||
+               eid.equals(tid) ||
+               (!numOnlyTid.isEmpty() && (numOnlyEid.equals(numOnlyTid) || numOnlySid.equals(numOnlyTid))) ||
+               (eid.length() > 0 && tid.contains(eid)) ||
+               (tid.length() > 0 && sid.contains(tid));
+    }
+
     @Transactional
     public Map<String, Object> restoreSession(String sessionId, String actorId) {
         Map<String, Object> res = new HashMap<>();
         
         List<Session> matchingSessions = sessionRepository.findAll().stream()
-                .filter(s -> s.getSessionId().equalsIgnoreCase(sessionId) || 
-                             (s.getEmployee() != null && (sessionId.contains(s.getEmployee().getId()) || s.getSessionId().contains(sessionId.replace("-ISOLATED", "")))))
+                .filter(s -> isSessionMatch(s, sessionId))
                 .toList();
 
         if (!matchingSessions.isEmpty()) {
@@ -140,16 +166,8 @@ public class IsolationService {
             res.put("status", "ACTIVE");
             res.put("message", "Session restored successfully.");
         } else {
-            List<Session> allIsolated = sessionRepository.findAll().stream()
-                    .filter(s -> "ISOLATED".equalsIgnoreCase(s.getStatus()) || "STEP_UP_MFA".equalsIgnoreCase(s.getStatus()))
-                    .toList();
-            for (Session s : allIsolated) {
-                s.setStatus("ACTIVE");
-                sessionRepository.save(s);
-            }
-            res.put("success", true);
-            res.put("status", "ACTIVE");
-            res.put("message", "All active isolated sessions restored.");
+            res.put("success", false);
+            res.put("message", "Session ID not found: " + sessionId);
         }
 
         AuditLog audit = new AuditLog(
@@ -168,8 +186,7 @@ public class IsolationService {
     public Map<String, Object> requireMFA(String sessionId, String actorId) {
         Map<String, Object> res = new HashMap<>();
         List<Session> matchingSessions = sessionRepository.findAll().stream()
-                .filter(s -> s.getSessionId().equalsIgnoreCase(sessionId) || 
-                             (s.getEmployee() != null && (sessionId.contains(s.getEmployee().getId()) || s.getSessionId().contains(sessionId.replace("-ISOLATED", "")))))
+                .filter(s -> isSessionMatch(s, sessionId))
                 .toList();
 
         if (!matchingSessions.isEmpty()) {
@@ -229,12 +246,18 @@ public class IsolationService {
     public Map<String, Object> getSessionStatus(String sessionId) {
         Map<String, Object> res = new HashMap<>();
         List<Session> matchingSessions = sessionRepository.findAll().stream()
-                .filter(s -> s.getSessionId().equalsIgnoreCase(sessionId) || 
-                             (s.getEmployee() != null && (sessionId.contains(s.getEmployee().getId()) || s.getSessionId().contains(sessionId.replace("-ISOLATED", "")))))
+                .filter(s -> isSessionMatch(s, sessionId))
                 .toList();
 
         if (!matchingSessions.isEmpty()) {
-            Session session = matchingSessions.get(0);
+            Session session = matchingSessions.stream()
+                    .filter(s -> "ISOLATED".equalsIgnoreCase(s.getStatus()) || "STEP_UP_MFA".equalsIgnoreCase(s.getStatus()) || "SUSPENDED".equalsIgnoreCase(s.getStatus()))
+                    .findFirst()
+                    .orElseGet(() -> matchingSessions.stream()
+                            .filter(s -> isSessionMatch(s, sessionId))
+                            .findFirst()
+                            .orElse(matchingSessions.get(0)));
+
             res.put("sessionId", session.getSessionId());
             res.put("status", session.getStatus());
             res.put("employeeId", session.getEmployee() != null ? session.getEmployee().getId() : null);

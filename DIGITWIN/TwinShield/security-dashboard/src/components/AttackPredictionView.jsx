@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSOC } from '../context/SOCContext';
-import { Zap, ShieldAlert, TrendingUp, ArrowRight } from 'lucide-react';
+import { Zap, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export const AttackPredictionView = () => {
   const { employees, selectedEmployeeId } = useSOC();
@@ -17,7 +17,7 @@ export const AttackPredictionView = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
-        
+
         <div style={{ background: '#0B132B', padding: '1rem', borderRadius: '8px', border: '1px solid #1E293B' }}>
           <div style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'uppercase' }}>Current Threat Classification</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#EF4444', marginTop: '0.25rem' }}>
@@ -46,7 +46,7 @@ export const AttackPredictionView = () => {
         <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC', marginBottom: '1rem' }}>Attack Progression Trajectory</h3>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          
+
           <div style={{ background: '#1E293B', padding: '0.6rem 0.85rem', borderRadius: '6px', fontSize: '0.8rem', color: '#94A3B8', borderLeft: '3px solid #10B981' }}>
             1. Unusual Login
           </div>

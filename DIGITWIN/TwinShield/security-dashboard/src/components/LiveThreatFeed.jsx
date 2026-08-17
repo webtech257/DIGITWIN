@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSOC } from '../context/SOCContext';
-import { Radio, AlertCircle } from 'lucide-react';
+import { Radio } from 'lucide-react';
 
 export const LiveThreatFeed = () => {
   const { threatEvents } = useSOC();

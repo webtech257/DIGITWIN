@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, User, CreditCard, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 
 export const CustomerDetailsPage = ({ customer, onBack }) => {
   if (!customer) return null;

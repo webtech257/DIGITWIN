@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSOC } from '../context/SOCContext';
-import { FileText, Terminal } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export const AuditLogsView = () => {
   const { auditLogs } = useSOC();

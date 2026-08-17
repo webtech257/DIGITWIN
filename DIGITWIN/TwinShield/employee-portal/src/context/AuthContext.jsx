@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+
 
 const AuthContext = createContext(null);
 
@@ -117,7 +118,7 @@ export const AuthProvider = ({ children }) => {
         const res = await fetch(`http://localhost:8080/api/isolation/status/${session.sessionId}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.status && data.status !== session.status) {
+          if (data.status && (data.status !== session.status || data.employeeStatus !== session.employeeStatus)) {
             console.log(`⚡ Session status updated from backend: ${session.status} -> ${data.status}`);
             setSession((prev) => (prev ? { ...prev, status: data.status, employeeStatus: data.employeeStatus } : prev));
           }
@@ -130,7 +131,7 @@ export const AuthProvider = ({ children }) => {
     checkSessionStatus();
     const interval = setInterval(checkSessionStatus, 1000);
     return () => clearInterval(interval);
-  }, [session?.sessionId, session?.status]);
+  }, [session?.sessionId, session?.status, session?.employeeStatus]);
 
   const verifyAndCompleteMfa = async (passcode) => {
     if (!session) return;
@@ -146,11 +147,24 @@ export const AuthProvider = ({ children }) => {
 
   // Record activity or policy violation event to Spring Boot backend
   const recordActivityToBackend = async (resourceId, actionType, recordsAccessed = 1, isDenied = false) => {
-    if (!session || !currentUser) return;
+    const activeUser = currentUser || (localStorage.getItem('twinshield_user') ? JSON.parse(localStorage.getItem('twinshield_user')) : SYNTHETIC_PERSONAS[0]);
+    if (!activeUser) return;
+
+    const targetSessionId = session?.sessionId || `SESS-${activeUser.id}-ALPHA`;
+
+    const isDecoyOrCritical = resourceId.toLowerCase().includes('decoy') || 
+                              resourceId.toLowerCase().includes('honey') || 
+                              (isDenied && (resourceId.includes('vip') || resourceId.includes('reports')));
+
+    // Synchronously set ISOLATED status if honey decoy resource is accessed to trigger immediate zero-trust quarantine
+    if (isDecoyOrCritical) {
+      setSession((prev) => prev ? { ...prev, status: 'ISOLATED' } : { sessionId: targetSessionId, employeeId: activeUser.id, status: 'ISOLATED', employeeStatus: 'ACTIVE' });
+    }
+
     try {
       const payload = {
-        sessionId: session.sessionId,
-        employeeId: currentUser.id,
+        sessionId: targetSessionId,
+        employeeId: activeUser.id,
         resourceId: resourceId,
         actionType: actionType,
         recordsAccessed: recordsAccessed,
@@ -160,14 +174,14 @@ export const AuthProvider = ({ children }) => {
 
       console.log('Sending Activity Payload to Spring Boot:', payload);
 
-      const res = await fetch('http://localhost:8080/api/activities', {
+      await fetch('http://localhost:8080/api/activities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      if (resourceId.includes('decoy') || (isDenied && (resourceId.includes('vip') || resourceId.includes('reports')))) {
-        setSession((prev) => (prev ? { ...prev, status: 'ISOLATED' } : prev));
+      if (isDecoyOrCritical) {
+        setSession((prev) => prev ? { ...prev, status: 'ISOLATED' } : { sessionId: targetSessionId, employeeId: activeUser.id, status: 'ISOLATED', employeeStatus: 'ACTIVE' });
       }
     } catch (err) {
       console.warn('Backend activity post warning:', err.message);

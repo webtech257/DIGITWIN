@@ -13,7 +13,7 @@ import { AuditLogsView } from './components/AuditLogsView';
 const SOCDashboardContent = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
-  const handleInspectEmployee = (empId) => {
+  const handleInspectEmployee = () => {
     setActiveTab('digital-twin');
   };
 

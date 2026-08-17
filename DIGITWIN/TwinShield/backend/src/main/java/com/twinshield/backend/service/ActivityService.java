@@ -121,43 +121,57 @@ public class ActivityService {
             boolean isRbacViolation = dto.getIsRbacViolation() != null ? dto.getIsRbacViolation() : false;
             boolean isDecoy = resource.getIsDecoy() != null && resource.getIsDecoy();
 
-            // 1. Prepare Risk Calculation Payload for Python Engine
-            Map<String, Object> riskReq = new HashMap<>();
-            riskReq.put("employee_id", employee.getId());
-            riskReq.put("session_id", session.getSessionId());
-            riskReq.put("ml_anomaly_score", (isRbacViolation || isDecoy) ? 0.90 : (dto.getRecordsAccessed() > 100 ? 0.75 : 0.20));
-            riskReq.put("is_rbac_violation", isRbacViolation);
-            riskReq.put("resource_sensitivity", resource.getSensitivityScore() != null ? resource.getSensitivityScore() : (isRbacViolation ? 95 : 30));
-            riskReq.put("is_unknown_device", !session.getDeviceFingerprint().contains("BANK-PC"));
-            riskReq.put("is_unusual_location", "Foreign IP / Remote".equalsIgnoreCase(session.getLocationCity()));
-            riskReq.put("api_velocity", dto.getRecordsAccessed() > 50 ? 35.0 : 4.0);
-            riskReq.put("data_volume_bytes", dto.getDataVolumeBytes());
-            riskReq.put("recent_activity_sequence", Arrays.asList(dto.getActionType(), resource.getName()));
-            riskReq.put("prior_risk_score", 0.0);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(riskReq, headers);
-
-            Map<String, Object> riskRes = restTemplate.postForObject(PYTHON_RISK_ENGINE_URL, requestEntity, Map.class);
-            
             double riskScore = 15.0;
             String level = "NORMAL";
             String recommendedAction = "ALLOW";
             String attackStage = "None";
             List<String> reasons = new ArrayList<>();
 
-            if (riskRes != null && riskRes.containsKey("riskScore")) {
-                riskScore = ((Number) riskRes.get("riskScore")).doubleValue();
-                level = (String) riskRes.getOrDefault("level", "NORMAL");
-                recommendedAction = (String) riskRes.getOrDefault("recommendedAction", "ALLOW");
-                attackStage = (String) riskRes.getOrDefault("attackSequenceStage", "None");
+            // 1. Attempt Risk Calculation via Python ML Engine with Fallback
+            try {
+                Map<String, Object> riskReq = new HashMap<>();
+                riskReq.put("employee_id", employee.getId());
+                riskReq.put("session_id", session.getSessionId());
+                riskReq.put("ml_anomaly_score", (isRbacViolation || isDecoy) ? 0.90 : (dto.getRecordsAccessed() > 100 ? 0.75 : 0.20));
+                riskReq.put("is_rbac_violation", isRbacViolation);
+                riskReq.put("resource_sensitivity", resource.getSensitivityScore() != null ? resource.getSensitivityScore() : (isRbacViolation ? 95 : 30));
+                riskReq.put("is_unknown_device", !session.getDeviceFingerprint().contains("BANK-PC"));
+                riskReq.put("is_unusual_location", "Foreign IP / Remote".equalsIgnoreCase(session.getLocationCity()));
+                riskReq.put("api_velocity", dto.getRecordsAccessed() > 50 ? 35.0 : 4.0);
+                riskReq.put("data_volume_bytes", dto.getDataVolumeBytes());
+                riskReq.put("recent_activity_sequence", Arrays.asList(dto.getActionType(), resource.getName()));
+                riskReq.put("prior_risk_score", 0.0);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(riskReq, headers);
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> riskRes = restTemplate.postForObject(PYTHON_RISK_ENGINE_URL, requestEntity, Map.class);
                 
-                List<Map<String, Object>> factors = (List<Map<String, Object>>) riskRes.get("factors");
-                if (factors != null) {
-                    for (Map<String, Object> f : factors) {
-                        reasons.add((String) f.get("name"));
+                if (riskRes != null && riskRes.containsKey("riskScore")) {
+                    riskScore = ((Number) riskRes.get("riskScore")).doubleValue();
+                    level = (String) riskRes.getOrDefault("level", "NORMAL");
+                    recommendedAction = (String) riskRes.getOrDefault("recommendedAction", "ALLOW");
+                    attackStage = (String) riskRes.getOrDefault("attackSequenceStage", "None");
+                    
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> factors = (List<Map<String, Object>>) riskRes.get("factors");
+                    if (factors != null) {
+                        for (Map<String, Object> f : factors) {
+                            reasons.add((String) f.get("name"));
+                        }
                     }
+                }
+            } catch (Exception mlEx) {
+                // Fallback risk calculation if Python ML engine is unreachable
+                System.err.println("Python ML Engine unreachable, using Java fallback calculation: " + mlEx.getMessage());
+                if (isDecoy) {
+                    riskScore = 100.0;
+                } else if (isRbacViolation) {
+                    riskScore = 88.5;
+                } else if (dto.getRecordsAccessed() > 100) {
+                    riskScore = 75.0;
                 }
             }
 
@@ -175,7 +189,9 @@ public class ActivityService {
                 riskScore = 100.0;
                 level = "CRITICAL";
                 recommendedAction = "ISOLATE";
-                reasons.add("Decoy Honey Resource Access: " + resource.getId());
+                if (!reasons.contains("Decoy Honey Resource Access: " + resource.getId())) {
+                    reasons.add("Decoy Honey Resource Access: " + resource.getId());
+                }
             }
 
             String severity = "LOW";
@@ -185,7 +201,6 @@ public class ActivityService {
 
             String eventType = isDecoy ? "DECOY_RESOURCE_ACCESS" : (isRbacViolation ? "RBAC_VIOLATION" : "RESOURCE_ACCESS");
             String description = String.format("%s on %s (Risk Score: %.1f%%)", dto.getActionType(), resource.getId(), riskScore);
-
 
             // 2. Persist SecurityEvent to Database
             SecurityEvent event = new SecurityEvent(session, employee, eventType, severity, description);

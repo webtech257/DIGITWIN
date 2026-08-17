@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, CreditCard, Download, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Search, Download } from 'lucide-react';
 
 const SYNTHETIC_TRANSACTIONS = [
   { id: 'TXN-901', sender: 'John Doe', recipient: 'Anita Sharma', amount: '$450.00', date: '2026-08-14 14:22', status: 'COMPLETED' },
@@ -9,7 +9,7 @@ const SYNTHETIC_TRANSACTIONS = [
 ];
 
 export const TransactionSearchPage = ({ triggerDeniedAction }) => {
-  const { currentUser, hasPermission, recordActivityToBackend } = useAuth();
+  const { hasPermission, recordActivityToBackend } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleBulkExport = () => {

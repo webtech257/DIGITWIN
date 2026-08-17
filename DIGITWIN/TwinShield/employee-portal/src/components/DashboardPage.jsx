@@ -38,7 +38,7 @@ export const DashboardPage = ({ setActiveTab, triggerDeniedAction }) => {
       {/* Quick Action Tiles */}
       <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#F8FAFC', marginBottom: '1rem' }}>Core Banking Services</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        
+
         {/* Customer Search Tile */}
         <div
           onClick={() => setActiveTab('customers')}

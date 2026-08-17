@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Shield, Monitor, Wifi, CheckCircle2 } from 'lucide-react';
+import { Lock, Monitor, Wifi, CheckCircle2 } from 'lucide-react';
 
 export const SessionStatusPage = () => {
   const { currentUser, session } = useAuth();

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Shield, User, Search, CreditCard, Activity, LogOut, Lock } from 'lucide-react';
 
 export const Navbar = ({ activeTab, setActiveTab }) => {
-  const { currentUser, session, logoutUser } = useAuth();
+  const { currentUser, logoutUser } = useAuth();
 
   if (!currentUser) return null;
 

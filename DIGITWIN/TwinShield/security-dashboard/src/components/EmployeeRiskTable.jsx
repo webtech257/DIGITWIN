@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSOC } from '../context/SOCContext';
-import { Users, Eye, ShieldAlert, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Users, Eye } from 'lucide-react';
 
 export const EmployeeRiskTable = ({ onInspectEmployee }) => {
   const { employees, selectedEmployeeId, setSelectedEmployeeId } = useSOC();

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ShieldAlert, ArrowLeft, Lock, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, AlertTriangle } from 'lucide-react';
 
 export const AccessDeniedPage = ({ deniedDetails, onBack }) => {
   const { currentUser, session, recordActivityToBackend } = useAuth();
@@ -17,7 +17,7 @@ export const AccessDeniedPage = ({ deniedDetails, onBack }) => {
         true
       );
     }
-  }, [deniedDetails, session, currentUser]);
+  }, [deniedDetails, session, currentUser, recordActivityToBackend]);
 
 
   return (
