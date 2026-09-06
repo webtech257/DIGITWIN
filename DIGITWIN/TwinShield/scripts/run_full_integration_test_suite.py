@@ -96,18 +96,18 @@ def run_test_suite():
         risk_payload = {
             "employee_id": "EMP1024",
             "session_id": "SESS-1024-ALPHA",
-            "ml_anomaly_score": 0.95,
+            "ml_anomaly_score": 1.0,
             "is_rbac_violation": True,
-            "resource_sensitivity": 95,
+            "resource_sensitivity": 100,
             "is_unknown_device": True,
             "is_unusual_location": True,
-            "api_velocity": 45.0,
-            "data_volume_bytes": 25000000,
+            "api_velocity": 50.0,
+            "data_volume_bytes": 45000000,
             "recent_activity_sequence": ["Unusual Login", "Privilege Violation", "Bulk Query", "Export Attempt"],
-            "prior_risk_score": 88.0
+            "prior_risk_score": 90.0
         }
         risk_res = post(f"{RISK_ENGINE_URL}/risk/calculate", risk_payload)
-        assert risk_res["riskScore"] >= 95.0
+        assert risk_res["riskScore"] >= 100.0
         assert risk_res["level"] == "CRITICAL"
         assert risk_res["recommendedAction"] == "ISOLATE"
         print(f"  [PASS] Risk Engine (/risk/calculate): Score={risk_res['riskScore']}%, Level={risk_res['level']}, Action={risk_res['recommendedAction']}, Velocity={risk_res['riskVelocity']}%/min")
@@ -122,7 +122,7 @@ def run_test_suite():
         iso_payload = {
             "sessionId": "SESS-1024-ALPHA",
             "employeeId": "EMP1024",
-            "riskScore": 97.6,
+            "riskScore": 100.0,
             "reason": "Synthetic End-to-End Integration Verification Test",
             "isDecoyAccess": True,
             "accessedResource": "/api/v1/decoy/vip-customer-internal-001",

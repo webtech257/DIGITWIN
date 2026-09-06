@@ -4,6 +4,7 @@ import { SOCNavbar } from './components/SOCNavbar';
 import { OverviewSection } from './components/OverviewSection';
 import { LiveThreatFeed } from './components/LiveThreatFeed';
 import { EmployeeRiskTable } from './components/EmployeeRiskTable';
+import { EmployeeManagementView } from './components/EmployeeManagementView';
 import { DigitalTwinInspector } from './components/DigitalTwinInspector';
 import { AttackPredictionView } from './components/AttackPredictionView';
 import { IncidentInvestigationView } from './components/IncidentInvestigationView';
@@ -18,7 +19,7 @@ const SOCDashboardContent = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060B13' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <SOCNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
@@ -33,6 +34,7 @@ const SOCDashboardContent = () => {
 
         {activeTab === 'feed' && <LiveThreatFeed />}
         {activeTab === 'employee-risk' && <EmployeeRiskTable onInspectEmployee={handleInspectEmployee} />}
+        {activeTab === 'employee-mgmt' && <EmployeeManagementView />}
         {activeTab === 'digital-twin' && <DigitalTwinInspector />}
         {activeTab === 'prediction' && <AttackPredictionView />}
         {activeTab === 'investigation' && <IncidentInvestigationView />}

@@ -22,13 +22,14 @@ class RiskEngineService:
             total_risk += rbac_contrib
 
         # 3. Resource Sensitivity Signal (Max WEIGHT_RESOURCE_SENSITIVITY = 18.0 pts)
-        # Sensitivity ranges from 0 to 100
-        sens_factor = min(1.0, req.resource_sensitivity / 100.0)
-        sens_contrib = round(sens_factor * risk_config.WEIGHT_RESOURCE_SENSITIVITY, 1)
-        if sens_contrib > 0:
-            sens_name = "VIP Data Access" if req.resource_sensitivity >= 90 else "Sensitive Resource Access"
-            factors.append(RiskFactor(name=sens_name, contribution=sens_contrib))
-            total_risk += sens_contrib
+        # Sensitivity threshold >= 50
+        if req.resource_sensitivity >= 50:
+            sens_factor = min(1.0, (req.resource_sensitivity - 30.0) / 70.0)
+            sens_contrib = round(sens_factor * risk_config.WEIGHT_RESOURCE_SENSITIVITY, 1)
+            if sens_contrib > 0:
+                sens_name = "VIP Data Access" if req.resource_sensitivity >= 90 else "Sensitive Resource Access"
+                factors.append(RiskFactor(name=sens_name, contribution=sens_contrib))
+                total_risk += sens_contrib
 
         # 4. Device Anomaly Signal (Max WEIGHT_DEVICE_ANOMALY = 12.0 pts)
         if req.is_unknown_device:
@@ -84,7 +85,7 @@ class RiskEngineService:
         risk_velocity = round(max(0.0, final_risk_score - req.prior_risk_score), 1)
 
         # Determine Adaptive Security Level & Recommended Action
-        if final_risk_score > 95.0:
+        if final_risk_score >= 100.0:
             level = "CRITICAL"
             recommended_action = "ISOLATE"
         elif final_risk_score >= 90.0:

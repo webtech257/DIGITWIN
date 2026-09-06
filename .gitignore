@@ -1,0 +1,23 @@
+# Maven target directories & compiled java classes
+target/
+**/target/
+*.class
+**/*.class
+
+# Python pycache & compiled files
+__pycache__/
+**/__pycache__/
+*.pyc
+**/*.pyc
+
+# Node modules & build artifacts
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+*.log

@@ -31,6 +31,8 @@ public class ActivityService {
 
     private static final String PYTHON_RISK_ENGINE_URL = "http://localhost:8000/risk/calculate";
 
+    private final Map<String, Double> sessionRiskMap = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Autowired
     public ActivityService(EmployeeActivityRepository activityRepository,
                            SessionRepository sessionRepository,
@@ -50,6 +52,19 @@ public class ActivityService {
         this.webSocketPublisherService = webSocketPublisherService;
     }
 
+    public void resetSessionRisk(String sessionId) {
+        if (sessionId != null) {
+            sessionRiskMap.remove(sessionId);
+            // Also handle trimmed session IDs or employee IDs
+            sessionRiskMap.keySet().removeIf(k -> k.equalsIgnoreCase(sessionId) || k.contains(sessionId));
+        }
+    }
+
+    public double getSessionRiskScore(String sessionId) {
+        if (sessionId == null) return 0.0;
+        return sessionRiskMap.getOrDefault(sessionId, 0.0);
+    }
+
     public EmployeeActivity logActivity(ActivityRequestDTO dto) {
         // Fetch or create Role
         Role defaultRole = roleRepository.findById("ROLE_CUST_SERVICE")
@@ -60,7 +75,7 @@ public class ActivityService {
                 .orElseGet(() -> {
                     Employee defaultEmp = new Employee(
                         dto.getEmployeeId(),
-                        "John Doe (Synthetic)",
+                        "John Doe",
                         dto.getEmployeeId().toLowerCase() + "@twinshield-bank.internal",
                         "Retail Banking",
                         defaultRole,
@@ -121,6 +136,9 @@ public class ActivityService {
             boolean isRbacViolation = dto.getIsRbacViolation() != null ? dto.getIsRbacViolation() : false;
             boolean isDecoy = resource.getIsDecoy() != null && resource.getIsDecoy();
 
+            String sessId = session.getSessionId();
+            double priorRiskScore = sessionRiskMap.getOrDefault(sessId, 0.0);
+
             double riskScore = 15.0;
             String level = "NORMAL";
             String recommendedAction = "ALLOW";
@@ -132,7 +150,8 @@ public class ActivityService {
                 Map<String, Object> riskReq = new HashMap<>();
                 riskReq.put("employee_id", employee.getId());
                 riskReq.put("session_id", session.getSessionId());
-                riskReq.put("ml_anomaly_score", (isRbacViolation || isDecoy) ? 0.90 : (dto.getRecordsAccessed() > 100 ? 0.75 : 0.20));
+                double mlAnomalyScore = (isRbacViolation || isDecoy) ? 0.75 : (dto.getRecordsAccessed() > 100 ? 0.60 : 0.05);
+                riskReq.put("ml_anomaly_score", mlAnomalyScore);
                 riskReq.put("is_rbac_violation", isRbacViolation);
                 riskReq.put("resource_sensitivity", resource.getSensitivityScore() != null ? resource.getSensitivityScore() : (isRbacViolation ? 95 : 30));
                 riskReq.put("is_unknown_device", !session.getDeviceFingerprint().contains("BANK-PC"));
@@ -140,7 +159,7 @@ public class ActivityService {
                 riskReq.put("api_velocity", dto.getRecordsAccessed() > 50 ? 35.0 : 4.0);
                 riskReq.put("data_volume_bytes", dto.getDataVolumeBytes());
                 riskReq.put("recent_activity_sequence", Arrays.asList(dto.getActionType(), resource.getName()));
-                riskReq.put("prior_risk_score", 0.0);
+                riskReq.put("prior_risk_score", priorRiskScore);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
@@ -169,19 +188,24 @@ public class ActivityService {
                 if (isDecoy) {
                     riskScore = 100.0;
                 } else if (isRbacViolation) {
-                    riskScore = 88.5;
+                    riskScore = 50.0;
                 } else if (dto.getRecordsAccessed() > 100) {
-                    riskScore = 75.0;
+                    riskScore = 35.0;
+                } else {
+                    riskScore = 5.0;
                 }
             }
 
-            // Enforce appropriate high risk baseline for RBAC Policy Violations
             if (isRbacViolation) {
-                int resSensitivity = resource.getSensitivityScore() != null ? resource.getSensitivityScore() : 95;
-                double baseRbacRisk = resSensitivity >= 80 ? 88.5 : 78.0;
-                riskScore = Math.max(riskScore, baseRbacRisk);
                 if (!reasons.contains("Role Permission Violation")) {
                     reasons.add("Role Permission Violation");
+                }
+                // Accumulate risk for RBAC violations: 1st = 35%, 2nd = 70%, 3rd = 100%
+                riskScore = Math.min(100.0, priorRiskScore + 35.0);
+            } else if (!isDecoy) {
+                // For other non-decoy activities, accumulate prior risk if elevated
+                if (priorRiskScore > 0) {
+                    riskScore = Math.min(100.0, priorRiskScore + (riskScore > 10.0 ? (riskScore * 0.3) : 0.0));
                 }
             }
 
@@ -193,6 +217,9 @@ public class ActivityService {
                     reasons.add("Decoy Honey Resource Access: " + resource.getId());
                 }
             }
+
+            // Save updated cumulative risk score for this session
+            sessionRiskMap.put(sessId, riskScore);
 
             String severity = "LOW";
             if (riskScore >= 85.0) severity = "CRITICAL";
@@ -206,9 +233,9 @@ public class ActivityService {
             SecurityEvent event = new SecurityEvent(session, employee, eventType, severity, description);
             securityEventRepository.save(event);
 
-            // 3. Automated Isolation if Risk > 95%
+            // 3. Automated Isolation if Risk >= 100% or Decoy Access
             String sessionStatus = session.getStatus();
-            if (riskScore >= 95.0 || isDecoy) {
+            if (riskScore >= 100.0 || isDecoy) {
                 sessionStatus = "ISOLATED";
                 IsolationEvaluationRequestDTO isoReq = new IsolationEvaluationRequestDTO();
                 isoReq.setSessionId(session.getSessionId());

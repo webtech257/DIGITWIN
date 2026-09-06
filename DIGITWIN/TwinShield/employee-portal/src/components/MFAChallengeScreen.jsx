@@ -18,7 +18,7 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
   return (
     <div className="animate-fade-in" style={{
       minHeight: '100vh',
-      background: 'radial-gradient(circle at center, #1E1B10 0%, #0F0E0A 100%)',
+      background: 'linear-gradient(135deg, #FEF3C7 0%, #F8FAFC 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -28,35 +28,36 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
         maxWidth: '560px',
         width: '100%',
         padding: '3rem 2.5rem',
-        border: '2px solid rgba(245, 158, 11, 0.6)',
-        boxShadow: '0 0 40px rgba(245, 158, 11, 0.2)',
+        background: '#FFFFFF',
+        border: '2px solid #FDE68A',
+        boxShadow: '0 20px 50px rgba(245, 158, 11, 0.12)',
         textAlign: 'center'
       }}>
         <div style={{
           width: '76px',
           height: '76px',
-          background: 'rgba(245, 158, 11, 0.15)',
+          background: '#FEF3C7',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 1.5rem auto',
-          border: '2px solid #F59E0B'
+          border: '2px solid #D97706'
         }}>
-          <KeyRound style={{ width: '38px', height: '38px', color: '#FBBF24' }} />
+          <KeyRound style={{ width: '38px', height: '38px', color: '#D97706' }} />
         </div>
 
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F8FAFC', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>
           Mandatory Step-Up MFA Challenge
         </h1>
 
-        <p style={{ fontSize: '0.9rem', color: '#94A3B8', marginBottom: '1.75rem', lineHeight: '1.5' }}>
-          SOC Security Administrator requested mandatory re-authentication verification for <strong style={{ color: '#FBBF24' }}>{currentUser?.name}</strong>.
+        <p style={{ fontSize: '0.9rem', color: '#64748B', marginBottom: '1.75rem', lineHeight: '1.5' }}>
+          SOC Security Administrator requested mandatory re-authentication verification for <strong style={{ color: '#D97706' }}>{currentUser?.name}</strong>.
         </p>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: '#CBD5E1', fontWeight: 600, marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '0.5rem' }}>
               6-Digit Authenticator Passcode
             </label>
             <input
@@ -72,13 +73,13 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
                 fontFamily: 'monospace',
                 letterSpacing: '6px',
                 textAlign: 'center',
-                background: '#0F172A',
-                border: '1.5px solid #334155',
+                background: '#F8FAFC',
+                border: '1.5.px solid #CBD5E1',
                 borderRadius: '8px',
-                color: '#F8FAFC'
+                color: '#0F172A'
               }}
             />
-            {error && <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.4rem' }}>{error}</div>}
+            {error && <div style={{ color: '#DC2626', fontSize: '0.8rem', marginTop: '0.4rem' }}>{error}</div>}
           </div>
 
           <button
@@ -96,7 +97,8 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
               justifyContent: 'center',
               gap: '0.5rem',
               border: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
             }}
           >
             <ShieldCheck style={{ width: '18px', height: '18px' }} />
@@ -110,7 +112,7 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
             marginTop: '1.25rem',
             background: 'transparent',
             border: 'none',
-            color: '#60A5FA',
+            color: '#2563EB',
             fontSize: '0.8rem',
             cursor: 'pointer',
             textDecoration: 'underline'

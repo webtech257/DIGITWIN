@@ -27,6 +27,9 @@ public class Employee {
     @Column(name = "status", length = 20)
     private String status = "ACTIVE";
 
+    @Column(name = "password", length = 100)
+    private String password = "TwinShield@2026";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -41,6 +44,7 @@ public class Employee {
         this.department = department;
         this.role = role;
         this.status = status != null ? status : "ACTIVE";
+        this.password = "TwinShield@2026";
         this.createdAt = LocalDateTime.now();
     }
 
@@ -61,6 +65,9 @@ public class Employee {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

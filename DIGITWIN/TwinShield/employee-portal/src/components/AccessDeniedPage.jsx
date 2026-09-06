@@ -22,45 +22,45 @@ export const AccessDeniedPage = ({ deniedDetails, onBack }) => {
 
   return (
     <div className="animate-fade-in" style={{ padding: '3rem 1.5rem', maxWidth: '650px', margin: '0 auto', textAlign: 'center' }}>
-      <div className="glass-card" style={{ padding: '2.5rem', border: '1.5px solid rgba(239, 68, 68, 0.4)' }}>
+      <div className="glass-card" style={{ padding: '2.5rem', border: '1.5px solid #FCA5A5', background: '#FFFFFF' }}>
         
         <div style={{
           width: '72px',
           height: '72px',
-          background: 'rgba(239, 68, 68, 0.15)',
+          background: '#FEF2F2',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 1.5rem auto',
-          border: '2px solid rgba(239, 68, 68, 0.4)'
+          border: '2px solid #FCA5A5'
         }}>
-          <ShieldAlert style={{ width: '38px', height: '38px', color: '#EF4444' }} />
+          <ShieldAlert style={{ width: '38px', height: '38px', color: '#DC2626' }} />
         </div>
 
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
           Access Restricted by Policy Engine
         </h1>
-        <p style={{ fontSize: '0.9rem', color: '#94A3B8', marginBottom: '1.5rem' }}>
-          Your role (<strong style={{ color: '#F87171' }}>{currentUser?.roleName}</strong>) does not hold permission <code>{deniedDetails?.requiredPermission}</code> required to access this resource.
+        <p style={{ fontSize: '0.9rem', color: '#64748B', marginBottom: '1.5rem' }}>
+          Your role (<strong style={{ color: '#DC2626' }}>{currentUser?.roleName}</strong>) does not hold permission <code>{deniedDetails?.requiredPermission}</code> required to access this resource.
         </p>
 
         <div style={{
-          background: '#0F172A',
+          background: '#FEF2F2',
           padding: '1rem',
           borderRadius: '8px',
-          border: '1px solid #334155',
+          border: '1px solid #FCA5A5',
           marginBottom: '1.5rem',
           textAlign: 'left',
           fontSize: '0.8rem',
-          color: '#CBD5E1'
+          color: '#334155'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#F59E0B', fontWeight: 600, marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#D97706', fontWeight: 600, marginBottom: '0.5rem' }}>
             <AlertTriangle style={{ width: '15px', height: '15px' }} /> Security Event Dispatch Status
           </div>
-          <div>Resource Endpoint: <code style={{ color: '#60A5FA' }}>{deniedDetails?.resourceId}</code></div>
-          <div>Action Requested: <strong style={{ color: '#F8FAFC' }}>{deniedDetails?.actionName}</strong></div>
-          <div style={{ color: '#10B981', marginTop: '0.4rem' }}>✓ Policy violation logged to Security Control Plane risk engine</div>
+          <div>Resource Endpoint: <code style={{ color: '#2563EB', fontWeight: 600 }}>{deniedDetails?.resourceId}</code></div>
+          <div>Action Requested: <strong style={{ color: '#0F172A' }}>{deniedDetails?.actionName}</strong></div>
+          <div style={{ color: '#059669', marginTop: '0.4rem', fontWeight: 600 }}>✓ Policy violation logged to Security Control Plane risk engine</div>
         </div>
 
         <button
@@ -73,7 +73,10 @@ export const AccessDeniedPage = ({ deniedDetails, onBack }) => {
             borderRadius: '8px',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
           }}
         >
           <ArrowLeft style={{ width: '16px', height: '16px' }} />

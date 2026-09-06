@@ -166,9 +166,9 @@ def run_end_to_end_synthetic_attack_simulation():
             print(f"  |-- Recommended Action: {action}")
             print(f"  |-- Top Factors       : {factors_str}")
 
-            # If score > 95%, trigger backend session isolation
-            if score >= 95.0:
-                print(f"  +-- CRITICAL RISK THRESHOLD CROSSED (>95%). Triggering Automated Session Isolation...")
+            # If score >= 100%, trigger backend session isolation
+            if score >= 100.0:
+                print(f"  +-- CRITICAL RISK THRESHOLD CROSSED (100%). Triggering Automated Session Isolation...")
                 iso_payload = {
                     "sessionId": "SESS-1024-ALPHA",
                     "employeeId": "EMP1024",

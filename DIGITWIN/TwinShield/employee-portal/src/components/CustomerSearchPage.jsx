@@ -1,18 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, Eye, Lock } from 'lucide-react';
-
-const SYNTHETIC_CUSTOMERS = [
-  { id: 'CUST-8012', name: 'Robert Chen', type: 'STANDARD', balance: '$12,450.00', status: 'Active', category: 'Standard Retail' },
-  { id: 'CUST-8013', name: 'Anita Sharma', type: 'STANDARD', balance: '$45,800.00', status: 'Active', category: 'Standard Retail' },
-  { id: 'CUST-8014', name: 'David Miller', type: 'STANDARD', balance: '$8,920.00', status: 'Active', category: 'Standard Retail' },
-  { id: 'VIP-9001', name: 'Victor Vance (Executive)', type: 'VIP_CONFIDENTIAL', balance: '$8,450,000.00', status: 'Active', category: 'VIP Private Client' },
-  { id: 'VIP-9002', name: 'Elena Rostova (Global VIP)', type: 'VIP_CONFIDENTIAL', balance: '$14,200,000.00', status: 'Active', category: 'VIP Private Client' },
-  { id: 'EXEC-9003', name: 'CEO Personal Account #9001 (Honey Resource Decoy Trap)', type: 'DECOY_HONEY_TRAP', balance: '$25,400,000.00', status: 'Active', category: 'Executive Escrow (Honey Token)' }
-];
+import { Search, Eye, CreditCard, ShieldAlert } from 'lucide-react';
 
 export const CustomerSearchPage = ({ onSelectCustomer, triggerDeniedAction }) => {
-  const { hasPermission, recordActivityToBackend } = useAuth();
+  const { customers, hasPermission, recordActivityToBackend } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleViewCustomer = (customer) => {
@@ -31,28 +22,31 @@ export const CustomerSearchPage = ({ onSelectCustomer, triggerDeniedAction }) =>
       return;
     }
 
-    // Normal allowed action
     recordActivityToBackend('/api/v1/customer/profile', 'READ', 1, false);
     onSelectCustomer(customer);
   };
 
-  const filtered = SYNTHETIC_CUSTOMERS.filter((c) =>
+  const filtered = customers.filter((c) =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1150px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F8FAFC' }}>Customer Profile Search</h1>
-          <p style={{ fontSize: '0.875rem', color: '#94A3B8' }}>Corporate banking customer database & account lookup.</p>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>
+            Customer Account & Product Registry
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: '#64748B' }}>
+            Live corporate banking customer search, active balance inquiry, and issued EMV debit cards.
+          </p>
         </div>
       </div>
 
       {/* Search Input Bar */}
-      <div className="glass-card" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Search style={{ color: '#94A3B8', width: '20px', height: '20px' }} />
+      <div className="glass-card" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+        <Search style={{ color: '#64748B', width: '20px', height: '20px' }} />
         <input
           type="text"
           placeholder="Search by customer name or ID (e.g. Robert, VIP-9001)..."
@@ -61,78 +55,74 @@ export const CustomerSearchPage = ({ onSelectCustomer, triggerDeniedAction }) =>
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#F8FAFC',
+            color: '#0F172A',
             width: '100%',
-            fontSize: '0.95rem'
+            fontSize: '0.95rem',
+            outline: 'none'
           }}
         />
       </div>
 
-      {/* Customers Table */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
+      {/* Customer Roster Table */}
+      <div className="glass-card" style={{ padding: '1.5rem', background: '#FFFFFF', border: '1px solid #E2E8F0' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ background: '#0F172A', borderBottom: '1px solid #334155', color: '#94A3B8', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              <th style={{ padding: '1rem' }}>Customer ID</th>
-              <th style={{ padding: '1rem' }}>Name</th>
-              <th style={{ padding: '1rem' }}>Account Type</th>
-              <th style={{ padding: '1rem' }}>Portfolio Tier</th>
-              <th style={{ padding: '1rem' }}>Balance</th>
-              <th style={{ padding: '1rem', textAlign: 'right' }}>Action</th>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+              <th style={{ padding: '0.85rem 1rem' }}>Account No.</th>
+              <th style={{ padding: '0.85rem 1rem' }}>Customer Name</th>
+              <th style={{ padding: '0.85rem 1rem' }}>Account Tier</th>
+              <th style={{ padding: '0.85rem 1rem' }}>Active EMV Cards</th>
+              <th style={{ padding: '0.85rem 1rem' }}>Live Balance</th>
+              <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((customer) => {
-              const isDecoy = customer.type === 'DECOY_HONEY_TRAP' || customer.id === 'EXEC-9003';
-              const isVip = customer.type === 'VIP_CONFIDENTIAL' || isDecoy;
-              // Decoy target MUST BE 100% accessible to entice attacker into clicking
-              const canAccess = isDecoy ? true : (!isVip || hasPermission('vip:read'));
+            {filtered.map((cust) => {
+              const isHoney = cust.type === 'DECOY_HONEY_TRAP';
+              const isVip = cust.type === 'VIP_CONFIDENTIAL';
+              const cardCount = cust.issuedCards ? cust.issuedCards.length : 0;
 
               return (
-                <tr key={customer.id} style={{ borderBottom: '1px solid #334155', transition: 'background 0.2s ease' }}>
-                  <td style={{ padding: '1rem', fontWeight: 600, fontFamily: 'monospace', color: isVip ? '#F59E0B' : '#60A5FA' }}>
-                    {customer.id}
+                <tr key={cust.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '0.9rem 1rem', fontWeight: 800, fontFamily: 'monospace', color: isHoney ? '#DC2626' : isVip ? '#D97706' : '#2563EB' }}>
+                    {cust.id}
                   </td>
-                  <td style={{ padding: '1rem', color: '#F8FAFC', fontWeight: 500 }}>
-                    {customer.name}
+                  <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#0F172A' }}>
+                    {cust.name}
+                    {isHoney && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', background: '#FEF2F2', color: '#DC2626', border: '1px solid #FCA5A5', padding: '2px 6px', borderRadius: '4px' }}>HONEY TRAP</span>}
                   </td>
-                  <td style={{ padding: '1rem' }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      background: isDecoy ? 'rgba(239, 68, 68, 0.2)' : isVip ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.15)',
-                      color: isDecoy ? '#F87171' : isVip ? '#FBBF24' : '#34D399'
-                    }}>
-                      {isDecoy ? 'HONEY_DECOY_TRAP' : customer.type}
+                  <td style={{ padding: '0.9rem 1rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: isVip ? '#FEF3C7' : '#EFF6FF', color: isVip ? '#D97706' : '#2563EB', border: isVip ? '1px solid #FDE68A' : '1px solid #BFDBFE' }}>
+                      {cust.category}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', color: '#94A3B8', fontSize: '0.85rem' }}>
-                    {customer.category}
+                  <td style={{ padding: '0.9rem 1rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: cardCount > 0 ? '#F3E8FF' : '#F1F5F9', color: cardCount > 0 ? '#7C3AED' : '#64748B', border: cardCount > 0 ? '1px solid #DDD6FE' : '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <CreditCard style={{ width: '14px', height: '14px' }} />
+                      {cardCount > 0 ? `${cardCount} Card${cardCount > 1 ? 's' : ''} Issued` : 'No Active Cards'}
+                    </span>
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 600, color: '#F8FAFC' }}>
-                    {customer.balance}
+                  <td style={{ padding: '0.9rem 1rem', fontWeight: 800, color: '#059669', fontSize: '1rem' }}>
+                    ₹{cust.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                  <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
                     <button
-                      onClick={() => handleViewCustomer(customer)}
+                      onClick={() => handleViewCustomer(cust)}
                       style={{
-                        padding: '0.4rem 0.85rem',
+                        padding: '0.45rem 0.85rem',
+                        background: isHoney ? '#FEF2F2' : '#F0FDF4',
+                        color: isHoney ? '#DC2626' : '#059669',
+                        border: isHoney ? '1px solid #FCA5A5' : '1px solid #A7F3D0',
                         borderRadius: '6px',
+                        fontWeight: 700,
                         fontSize: '0.8rem',
-                        fontWeight: 600,
+                        cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.35rem',
-                        background: canAccess ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        color: canAccess ? '#34D399' : '#F87171',
-                        border: canAccess ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-                        cursor: 'pointer'
+                        gap: '0.35rem'
                       }}
                     >
-                      {canAccess ? <Eye style={{ width: '14px', height: '14px' }} /> : <Lock style={{ width: '14px', height: '14px' }} />}
-                      {canAccess ? 'View Profile' : 'Restricted (VIP)'}
+                      <Eye style={{ width: '14px', height: '14px' }} /> View Profile
                     </button>
                   </td>
                 </tr>

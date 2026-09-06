@@ -15,11 +15,11 @@ const parseRiskScoreFromDesc = (desc, severity) => {
 
 export const SOCProvider = ({ children }) => {
   const [stats, setStats] = useState({
-    totalEmployees: 1284,
-    activeSessions: 943,
-    suspiciousSessions: 17,
-    criticalThreats: 4,
-    isolatedSessions: 2
+    totalEmployees: 3,
+    activeSessions: 3,
+    suspiciousSessions: 0,
+    criticalThreats: 0,
+    isolatedSessions: 0
   });
 
   const [threatEvents, setThreatEvents] = useState([]);
@@ -27,10 +27,10 @@ export const SOCProvider = ({ children }) => {
   const [employees, setEmployees] = useState([
     {
       id: 'EMP1024',
-      name: 'John Doe (Synthetic)',
+      name: 'John Doe',
       role: 'Customer Service Representative',
       department: 'Retail Banking',
-      riskScore: 15.0,
+      riskScore: 0.0,
       status: 'NORMAL',
       currentThreat: 'NONE',
       sessionId: 'SESS-1024-ALPHA',
@@ -44,21 +44,21 @@ export const SOCProvider = ({ children }) => {
         typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
       },
       currentBehavior: {
-        loginTime: '10:00 AM (Normal)',
+        loginTime: '09:00 AM (Normal)',
         device: 'BANK-PC-1024 (Known)',
         location: 'Chennai Office (Normal)',
-        accessesCount: 15,
+        accessesCount: 5,
         resourceAccessed: '/api/v1/customer/profile'
       }
     },
     {
       id: 'EMP2031',
-      name: 'Sarah Jenkins (Synthetic)',
+      name: 'Sarah Jenkins',
       role: 'Branch Manager',
       department: 'Branch Operations',
-      riskScore: 78.4,
-      status: 'MONITOR',
-      currentThreat: 'PRIVILEGE_CREEP',
+      riskScore: 0.0,
+      status: 'NORMAL',
+      currentThreat: 'NONE',
       sessionId: 'SESS-2031-BETA',
       device: 'BANK-PC-2031',
       location: 'Chennai Office',
@@ -70,119 +70,43 @@ export const SOCProvider = ({ children }) => {
         typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
       },
       currentBehavior: {
-        loginTime: '09:15 AM (Normal)',
+        loginTime: '08:45 AM (Normal)',
         device: 'BANK-PC-2031 (Known)',
         location: 'Chennai Office (Normal)',
-        accessesCount: 45,
+        accessesCount: 8,
         resourceAccessed: '/api/v1/reports/manager-summary'
       }
     },
     {
-      id: 'EMP3099',
-      name: 'Alex Vance (Synthetic)',
+      id: 'EMP5099',
+      name: 'Alex Vance',
       role: 'System Administrator',
-      department: 'IT Infrastructure',
-      riskScore: 22.0,
+      department: 'IT Security & Admin',
+      riskScore: 0.0,
       status: 'NORMAL',
       currentThreat: 'NONE',
-      sessionId: 'SESS-3099-GAMMA',
-      device: 'ADMIN-PC-3099',
-      location: 'Mumbai Data Center',
+      sessionId: 'SESS-5099-GAMMA',
+      device: 'ADMIN-PC-5099',
+      location: 'Chennai Office',
       expectedBehavior: {
         workingHours: '09:00 - 18:00 IST',
-        device: 'ADMIN-PC-3099',
-        location: 'Mumbai Data Center',
+        device: 'ADMIN-PC-5099',
+        location: 'Chennai Office',
         avgDailyAccesses: 50,
         typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
       },
       currentBehavior: {
-        loginTime: '09:30 AM (Normal)',
-        device: 'ADMIN-PC-3099 (Known)',
-        location: 'Mumbai Data Center (Normal)',
-        accessesCount: 28,
-        resourceAccessed: '/api/v1/reports/manager-summary'
-      }
-    },
-    {
-      id: 'EMP4088',
-      name: 'Michael Chen (Synthetic)',
-      role: 'Compliance Officer',
-      department: 'Legal & Compliance',
-      riskScore: 35.5,
-      status: 'NORMAL',
-      currentThreat: 'NONE',
-      sessionId: 'SESS-4088-DELTA',
-      device: 'COMPLIANCE-PC-4088',
-      location: 'Bengaluru Office',
-      expectedBehavior: {
-        workingHours: '09:00 - 17:00 IST',
-        device: 'COMPLIANCE-PC-4088',
-        location: 'Bengaluru Office',
-        avgDailyAccesses: 30,
-        typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
-      },
-      currentBehavior: {
-        loginTime: '08:45 AM (Normal)',
-        device: 'COMPLIANCE-PC-4088 (Known)',
-        location: 'Bengaluru Office (Normal)',
-        accessesCount: 18,
-        resourceAccessed: '/api/v1/customer/profile'
-      }
-    },
-    {
-      id: 'EMP5012',
-      name: 'Priya Sharma (Synthetic)',
-      role: 'Senior Teller',
-      department: 'Treasury Operations',
-      riskScore: 12.0,
-      status: 'NORMAL',
-      currentThreat: 'NONE',
-      sessionId: 'SESS-5012-EPSILON',
-      device: 'TELLER-PC-5012',
-      location: 'Chennai Office',
-      expectedBehavior: {
-        workingHours: '08:00 - 16:00 IST',
-        device: 'TELLER-PC-5012',
-        location: 'Chennai Office',
-        avgDailyAccesses: 20,
-        typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
-      },
-      currentBehavior: {
-        loginTime: '08:05 AM (Normal)',
-        device: 'TELLER-PC-5012 (Known)',
+        loginTime: '09:00 AM (Normal)',
+        device: 'ADMIN-PC-5099 (Known)',
         location: 'Chennai Office (Normal)',
         accessesCount: 12,
-        resourceAccessed: '/api/v1/transactions/search'
+        resourceAccessed: '/api/v1/reports/manager-summary'
       }
     }
   ]);
 
-  const [isolatedSessions, setIsolatedSessions] = useState([
-    {
-      sessionId: 'SESS-9942-OMEGA',
-      employeeId: 'EMP8842',
-      employeeName: 'David Wallace (Synthetic)',
-      riskScore: 96.2,
-      reason: 'Bulk Decoy Executive Vault Access & Privilege Abuse',
-      isolatedAt: '08:12:10 IST',
-      status: 'ISOLATED'
-    },
-    {
-      sessionId: 'SESS-1024-ALPHA',
-      employeeId: 'EMP1024',
-      employeeName: 'John Doe (Synthetic)',
-      riskScore: 97.6,
-      reason: 'Automated Containment: Anomaly vector 97.6% crossed 95% threshold',
-      isolatedAt: '23:47:00 IST',
-      status: 'ISOLATED'
-    }
-  ]);
-
-  const [auditLogs, setAuditLogs] = useState([
-    { id: 1001, timestamp: '23:47:05', actor: 'SYSTEM (Zero-Trust Engine)', action: 'AUTOMATED_SESSION_ISOLATION', target: 'Session SESS-1024-ALPHA', details: 'Triggered by Risk Score 97.6% (>95% Critical Threshold)', hash: '0x7f8a3c9b2d1e4f5a' },
-    { id: 1002, timestamp: '08:12:15', actor: 'SYSTEM (Zero-Trust Engine)', action: 'AUTOMATED_SESSION_ISOLATION', target: 'Session SESS-9942-OMEGA', details: 'Triggered by Decoy Honey Token Access', hash: '0x3e2b1c4a5f6d7e8f' },
-    { id: 1003, timestamp: '08:15:22', actor: 'SOC Analyst (ID: SOC-04)', action: 'INVESTIGATION_FILE_OPENED', target: 'Incident INC-2026-001', details: 'Forensic telemetry audit initiated', hash: '0x9a8b7c6d5e4f3a2b' }
-  ]);
+  const [isolatedSessions, setIsolatedSessions] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('EMP1024');
   const [wsConnected, setWsConnected] = useState(false);
@@ -202,110 +126,232 @@ const formatTimestamp = (rawDate) => {
   useEffect(() => {
     const fetchLatestSecurityEvents = async () => {
       try {
-        const eventsRes = await fetch('http://localhost:8080/api/security-events');
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
-          if (Array.isArray(eventsData) && eventsData.length > 0) {
-            const formatted = eventsData.map((ev, index) => {
-              const rScore = parseRiskScoreFromDesc(ev.description, ev.severity);
-              return {
-                id: ev.id || `polled-${index}`,
-                timestamp: formatTimestamp(ev.createdAt),
-                employeeId: ev.employee?.id || 'EMP1024',
-                event: `${ev.eventType}: ${ev.description || 'Access Request'}`,
-                severity: ev.severity || (rScore > 90 ? 'CRITICAL' : rScore > 75 ? 'HIGH' : 'MEDIUM'),
-                riskScore: rScore
-              };
-            });
+        const [empRes, eventsRes, activitiesRes, isolationRes] = await Promise.all([
+          fetch('http://localhost:8080/api/employees').catch(() => null),
+          fetch('http://localhost:8080/api/security-events').catch(() => null),
+          fetch('http://localhost:8080/api/activities').catch(() => null),
+          fetch('http://localhost:8080/api/isolation/actions').catch(() => null)
+        ]);
 
-            // Update Live Threat Feed Ticker (merge polled events with live WS events, deduplicated by fingerprint)
-            setThreatEvents((prev) => {
-              const mergedMap = new Map();
-              // Polled events (newest first)
-              formatted.forEach((item) => {
-                const key = item.id ? String(item.id) : `${item.employeeId}-${item.timestamp}-${item.event}`;
-                if (!mergedMap.has(key)) {
-                  mergedMap.set(key, item);
-                }
+        let backendEmps = [];
+        if (empRes && empRes.ok) {
+          backendEmps = await empRes.json();
+        }
+
+        let eventsData = [];
+        if (eventsRes && eventsRes.ok) {
+          eventsData = await eventsRes.json();
+        }
+
+        let activitiesData = [];
+        if (activitiesRes && activitiesRes.ok) {
+          activitiesData = await activitiesRes.json();
+        }
+
+        let isolationActionsData = [];
+        if (isolationRes && isolationRes.ok) {
+          isolationActionsData = await isolationRes.json();
+        }
+
+        // Merge live backend isolation actions into isolatedSessions state
+        if (Array.isArray(isolationActionsData) && isolationActionsData.length > 0) {
+          setIsolatedSessions((prev) => {
+            const map = new Map(prev.map((s) => [s.sessionId, s]));
+            isolationActionsData.forEach((act) => {
+              const sId = act.sessionId || `SESS-${act.employee?.id || 'EMP1024'}-LIVE`;
+              const existing = map.get(sId);
+              map.set(sId, {
+                sessionId: sId,
+                employeeId: act.employee?.id || 'EMP1024',
+                employeeName: act.employee?.name || (act.employee?.id === 'EMP1024' ? 'John Doe (Synthetic)' : 'Bank Employee'),
+                riskScore: act.riskScore != null ? act.riskScore : (existing?.riskScore || 96.5),
+                reason: act.reason || existing?.reason || 'Zero-Trust Policy Anomaly Containment',
+                isolatedAt: act.createdAt ? formatTimestamp(act.createdAt) : (existing?.isolatedAt || 'Just Now'),
+                status: act.actionType || existing?.status || 'ISOLATED'
               });
-              // Overlay live WS items from prev state if fingerprint not already present
-              prev.forEach((item) => {
-                const key = item.id ? String(item.id) : `${item.employeeId}-${item.timestamp}-${item.event}`;
-                const fingerprint = `${item.employeeId}-${item.timestamp}-${item.event}`;
-                const exists = Array.from(mergedMap.values()).some(
-                  (existing) => `${existing.employeeId}-${existing.timestamp}-${existing.event}` === fingerprint
-                );
-                if (!exists && !mergedMap.has(key)) {
-                  mergedMap.set(key, item);
-                }
-              });
-              return Array.from(mergedMap.values()).slice(0, 40);
             });
+            return Array.from(map.values());
+          });
+        }
 
+        // Count real backend access activities per employee
+        const realActivityCounts = {};
+        if (Array.isArray(activitiesData)) {
+          activitiesData.forEach((act) => {
+            const empId = act.employee?.id || act.employeeId || 'EMP1024';
+            realActivityCounts[empId] = (realActivityCounts[empId] || 0) + 1;
+          });
+        }
 
-            // Find newest event per employee (formatted is sorted newest-first)
-            const latestPerEmp = {};
-            formatted.forEach((ev) => {
-              if (!latestPerEmp[ev.employeeId]) {
-                latestPerEmp[ev.employeeId] = ev;
-              }
+        const formatted = (Array.isArray(eventsData) ? eventsData : []).map((ev, index) => {
+          const rScore = parseRiskScoreFromDesc(ev.description, ev.severity);
+          return {
+            id: ev.id || `polled-${index}`,
+            timestamp: formatTimestamp(ev.createdAt),
+            employeeId: ev.employee?.id || 'EMP1024',
+            event: `${ev.eventType}: ${ev.description || 'Access Request'}`,
+            severity: ev.severity || (rScore > 90 ? 'CRITICAL' : rScore > 75 ? 'HIGH' : 'MEDIUM'),
+            riskScore: rScore
+          };
+        });
+
+        // Update Live Threat Feed Ticker
+        if (formatted.length > 0) {
+          setThreatEvents((prev) => {
+            const mergedMap = new Map();
+            formatted.forEach((item) => {
+              const key = item.id ? String(item.id) : `${item.employeeId}-${item.timestamp}-${item.event}`;
+              if (!mergedMap.has(key)) mergedMap.set(key, item);
             });
+            prev.forEach((item) => {
+              const key = item.id ? String(item.id) : `${item.employeeId}-${item.timestamp}-${item.event}`;
+              const fingerprint = `${item.employeeId}-${item.timestamp}-${item.event}`;
+              const exists = Array.from(mergedMap.values()).some(
+                (existing) => `${existing.employeeId}-${existing.timestamp}-${existing.event}` === fingerprint
+              );
+              if (!exists && !mergedMap.has(key)) mergedMap.set(key, item);
+            });
+            return Array.from(mergedMap.values()).slice(0, 40);
+          });
+        }
 
-            setEmployees((prev) =>
-              prev.map((emp) => {
-                const latestEv = latestPerEmp[emp.id] || (emp.id === 'EMP1024' ? formatted[0] : null);
-                if (latestEv) {
-                  const latestRiskScore = latestEv.riskScore;
-                  const newStatus = latestRiskScore >= 95.0 ? 'ISOLATED' : latestRiskScore >= 80.0 ? 'RESTRICTED' : latestRiskScore >= 60.0 ? 'MONITOR' : 'NORMAL';
-                  const newThreat = latestEv.event.includes('RBAC') || latestEv.event.includes('VIOLATION')
-                    ? 'ROLE_VIOLATION'
-                    : latestEv.event.includes('DECOY')
-                    ? 'DECOY_EXFILTRATION'
-                    : latestRiskScore > 75
-                    ? 'UNUSUALLY_HIGH_ACCESS'
-                    : emp.currentThreat;
+        const latestPerEmp = {};
+        formatted.forEach((ev) => {
+          latestPerEmp[ev.employeeId] = ev;
+        });
 
+        // SINGLE ATOMIC STATE UPDATE FOR ALL EMPLOYEES
+        setEmployees((prev) => {
+          const existingMap = new Map(prev.map((e) => [e.id, e]));
+
+          let mergedList = Array.isArray(backendEmps) && backendEmps.length > 0
+            ? backendEmps.map((bEmp) => {
+                const existing = existingMap.get(bEmp.id);
+                if (existing) {
                   return {
-                    ...emp,
-                    riskScore: latestRiskScore,
-                    status: newStatus,
-                    currentThreat: newThreat,
-                    currentBehavior: {
-                      ...emp.currentBehavior,
-                      resourceAccessed: latestEv.event,
-                      accessesCount: emp.currentBehavior.accessesCount + 1
-                    }
+                    ...existing,
+                    name: bEmp.name || existing.name,
+                    role: bEmp.role?.name || bEmp.roleName || existing.role,
+                    department: bEmp.department || existing.department,
+                    status: bEmp.status || existing.status
                   };
                 }
-                return emp;
-              })
-            );
-
-            // Re-populate isolated sessions on page refresh/poll if any critical events exist
-            formatted.filter((ev) => ev.riskScore >= 95.0 || ev.event.includes('ISOLATED')).forEach((criticalEv) => {
-              setIsolatedSessions((prev) => {
-                const existing = prev.find((s) => s.employeeId === criticalEv.employeeId || s.sessionId.includes(criticalEv.employeeId));
-                if (existing) {
-                  // Keep status if already modified by analyst (e.g. RESTORED, STEP_UP_MFA, ACCOUNT_DISABLED)
-                  return prev;
-                }
-                return [
-                  {
-                    sessionId: `SESS-${criticalEv.employeeId}-ISOLATED`,
-                    employeeId: criticalEv.employeeId,
-                    employeeName: criticalEv.employeeId === 'EMP1024' ? 'John Doe (Synthetic)' : criticalEv.employeeId,
-                    riskScore: criticalEv.riskScore,
-                    reason: `Automated Isolation: Risk Score ${criticalEv.riskScore}% crossed threshold. Event: ${criticalEv.event}`,
-                    isolatedAt: criticalEv.timestamp,
-                    status: 'ISOLATED'
+                return {
+                  id: bEmp.id,
+                  name: bEmp.name,
+                  role: bEmp.role?.name || 'Customer Service Representative',
+                  department: bEmp.department || 'Retail Banking',
+                  riskScore: 0.0,
+                  status: bEmp.status || 'NORMAL',
+                  currentThreat: 'NONE',
+                  sessionId: `SESS-${bEmp.id}-LIVE`,
+                  device: `BANK-PC-${bEmp.id}`,
+                  location: 'Chennai Office',
+                  expectedBehavior: {
+                    workingHours: '09:00 - 18:00 IST',
+                    device: `BANK-PC-${bEmp.id}`,
+                    location: 'Chennai Office',
+                    avgDailyAccesses: 25,
+                    typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
                   },
-                  ...prev
-                ];
-              });
-            });
+                  currentBehavior: {
+                    loginTime: '10:00 AM (Normal)',
+                    device: `BANK-PC-${bEmp.id} (Known)`,
+                    location: 'Chennai Office (Normal)',
+                    accessesCount: (realActivityCounts[bEmp.id] || 0) + 5,
+                    resourceAccessed: '/api/v1/customer/profile'
+                  }
+                };
+              })
+            : prev;
 
-          }
-        }
+          // Overlay live risk score and security event telemetry & ensure full digital twin properties
+          return mergedList.map((emp) => {
+            const latestEv = latestPerEmp[emp.id];
+            const baseExpected = emp.expectedBehavior || {
+              workingHours: '09:00 - 18:00 IST',
+              device: emp.device || `BANK-PC-${emp.id}`,
+              location: emp.location || 'Chennai Office',
+              avgDailyAccesses: 25,
+              typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
+            };
+
+            // Dynamic accessesCount computed from real backend activities performed
+            const dynamicAccesses = (realActivityCounts[emp.id] || 0) + 5;
+
+            const baseCurrent = emp.currentBehavior || {
+              loginTime: '10:00 AM (Normal)',
+              device: `${emp.device || 'BANK-PC-' + emp.id} (Known)`,
+              location: `${emp.location || 'Chennai Office'} (Normal)`,
+              accessesCount: dynamicAccesses,
+              resourceAccessed: '/api/v1/customer/profile'
+            };
+
+            if (latestEv) {
+              const isRestoredEv = (latestEv.event || '').includes('RESTORE') || (latestEv.event || '').includes('RESOLVED');
+              const latestRiskScore = isRestoredEv ? 0.0 : latestEv.riskScore;
+              const newStatus = isRestoredEv ? 'NORMAL' : latestRiskScore >= 95.0 ? 'ISOLATED' : latestRiskScore >= 80.0 ? 'RESTRICTED' : latestRiskScore >= 60.0 ? 'MONITOR' : 'NORMAL';
+              const newThreat = isRestoredEv ? 'NONE' : (latestEv.event || '').includes('RBAC') || (latestEv.event || '').includes('VIOLATION')
+                ? 'ROLE_VIOLATION'
+                : (latestEv.event || '').includes('DECOY')
+                ? 'DECOY_EXFILTRATION'
+                : latestRiskScore > 75
+                ? 'UNUSUALLY_HIGH_ACCESS'
+                : emp.currentThreat || 'NONE';
+
+              return {
+                ...emp,
+                riskScore: latestRiskScore,
+                status: newStatus,
+                currentThreat: newThreat,
+                device: emp.device || `BANK-PC-${emp.id}`,
+                location: emp.location || 'Chennai Office',
+                expectedBehavior: baseExpected,
+                currentBehavior: {
+                  ...baseCurrent,
+                  resourceAccessed: latestEv.event,
+                  accessesCount: dynamicAccesses
+                }
+              };
+            }
+
+            return {
+              ...emp,
+              riskScore: emp.riskScore != null ? emp.riskScore : 0.0,
+              status: emp.status || 'NORMAL',
+              currentThreat: emp.currentThreat || 'NONE',
+              device: emp.device || `BANK-PC-${emp.id}`,
+              location: emp.location || 'Chennai Office',
+              expectedBehavior: baseExpected,
+              currentBehavior: {
+                ...baseCurrent,
+                accessesCount: dynamicAccesses
+              }
+            };
+          });
+        });
+
+        // Re-populate isolated sessions on page refresh/poll if any critical events exist
+        formatted.filter((ev) => ev.riskScore >= 95.0 || ev.event.includes('ISOLATED')).forEach((criticalEv) => {
+          setIsolatedSessions((prev) => {
+            const existing = prev.find((s) => s.employeeId === criticalEv.employeeId || s.sessionId.includes(criticalEv.employeeId));
+            if (existing) {
+              return prev;
+            }
+            return [
+              {
+                sessionId: `SESS-${criticalEv.employeeId}-ISOLATED`,
+                employeeId: criticalEv.employeeId,
+                employeeName: criticalEv.employeeId === 'EMP1024' ? 'John Doe (Synthetic)' : criticalEv.employeeId,
+                riskScore: criticalEv.riskScore,
+                reason: `Automated Isolation: Risk Score ${criticalEv.riskScore}% crossed threshold. Event: ${criticalEv.event}`,
+                isolatedAt: criticalEv.timestamp,
+                status: 'ISOLATED'
+              },
+              ...prev
+            ];
+          });
+        });
       } catch (err) {
         console.warn('Security events polling warning:', err.message);
       }
@@ -402,7 +448,7 @@ const formatTimestamp = (rawDate) => {
             currentBehavior: {
               ...emp.currentBehavior,
               resourceAccessed: resource || emp.currentBehavior.resourceAccessed,
-              accessesCount: emp.currentBehavior.accessesCount + 1
+              accessesCount: emp.currentBehavior.accessesCount != null ? emp.currentBehavior.accessesCount : 5
             }
           };
         }
@@ -458,7 +504,11 @@ const formatTimestamp = (rawDate) => {
   const handleRestoreSession = async (sessionId, employeeId) => {
     const empId = employeeId || (sessionId && sessionId.includes('1024') ? 'EMP1024' : 'EMP1024');
     try {
-      await fetch(`http://localhost:8080/api/isolation/restore?sessionId=${sessionId}&actorId=SOC_ANALYST`, { method: 'POST' });
+      await Promise.all([
+        fetch(`http://localhost:8080/api/isolation/restore?sessionId=${sessionId}&actorId=SOC_ANALYST`, { method: 'POST' }),
+        fetch(`http://localhost:8080/api/isolation/restore?sessionId=SESS-1024-ALPHA&actorId=SOC_ANALYST`, { method: 'POST' }),
+        fetch(`http://localhost:8080/api/isolation/restore?sessionId=${empId}&actorId=SOC_ANALYST`, { method: 'POST' })
+      ]);
     } catch (e) {
       console.warn('Failed to restore session via API:', e);
     }
@@ -472,14 +522,13 @@ const formatTimestamp = (rawDate) => {
       })
     );
 
-
     setEmployees((prev) =>
       prev.map((e) => {
         if (e.id === empId || e.sessionId === sessionId || (sessionId && sessionId.includes(e.id))) {
           return {
             ...e,
             status: 'NORMAL',
-            riskScore: 15.0,
+            riskScore: 0.0,
             currentThreat: 'NONE'
           };
         }
@@ -487,11 +536,11 @@ const formatTimestamp = (rawDate) => {
       })
     );
 
-    // Clear 100% critical events for this employee from threatEvents so polling won't re-isolate immediately
+    // Clear critical events from threatEvents feed
     setThreatEvents((prev) =>
       prev.map((ev) => {
-        if (ev.employeeId === empId && (ev.riskScore >= 95.0 || ev.event.includes('ISOLATED') || ev.event.includes('DECOY'))) {
-          return { ...ev, riskScore: 15.0, severity: 'LOW', event: ev.event.replace('DECOY_RESOURCE_ACCESS', 'RESOLVED_EVENT') };
+        if (ev.employeeId === empId || ev.employeeId === 'EMP1024') {
+          return { ...ev, riskScore: 0.0, severity: 'LOW', event: 'RESTORE_SESSION: Session Restored by SOC Analyst' };
         }
         return ev;
       })
