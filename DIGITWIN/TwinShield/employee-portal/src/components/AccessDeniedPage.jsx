@@ -9,11 +9,12 @@ export const AccessDeniedPage = ({ deniedDetails, onBack }) => {
   useEffect(() => {
     if (deniedDetails && session && currentUser && !hasRecordedRef.current) {
       hasRecordedRef.current = true;
-      // Record Policy Violation event to Spring Boot Backend
+      // Record Policy Violation event to Spring Boot Backend (isDecoy = false, forceViolation = true)
       recordActivityToBackend(
         deniedDetails.resourceId || '/api/v1/unauthorized',
         'POLICY_VIOLATION_ATTEMPT',
         1,
+        false,
         true
       );
     }

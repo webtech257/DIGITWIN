@@ -22,11 +22,16 @@ public class IsolationController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/restore")
+    @PostMapping(value = {"/restore", "/restore/{sessionId}"})
     public ResponseEntity<Map<String, Object>> restoreSession(
-            @RequestParam String sessionId,
+            @PathVariable(required = false) String sessionId,
+            @RequestParam(name = "sessionId", required = false) String querySessionId,
             @RequestParam(required = false, defaultValue = "SOC_ANALYST") String actorId) {
-        Map<String, Object> response = isolationService.restoreSession(sessionId, actorId);
+        String effectiveSessionId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : querySessionId;
+        if (effectiveSessionId == null || effectiveSessionId.isEmpty()) {
+            effectiveSessionId = "EMP1024";
+        }
+        Map<String, Object> response = isolationService.restoreSession(effectiveSessionId, actorId);
         return ResponseEntity.ok(response);
     }
 
@@ -51,5 +56,12 @@ public class IsolationController {
         Map<String, Object> response = isolationService.getSessionStatus(sessionId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/actions")
+    public ResponseEntity<java.util.List<Map<String, Object>>> getIsolationActions() {
+        java.util.List<Map<String, Object>> response = isolationService.getRecentIsolationActions();
+        return ResponseEntity.ok(response);
+    }
 }
+
 

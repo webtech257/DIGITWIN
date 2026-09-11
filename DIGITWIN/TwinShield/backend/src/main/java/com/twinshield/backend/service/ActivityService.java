@@ -54,15 +54,30 @@ public class ActivityService {
 
     public void resetSessionRisk(String sessionId) {
         if (sessionId != null) {
+            String clean = sessionId.replaceAll("(?i)SESS-", "").replaceAll("(?i)-ISOLATED", "").replaceAll("(?i)-ALPHA", "").replaceAll("(?i)-LIVE", "").trim();
             sessionRiskMap.remove(sessionId);
-            // Also handle trimmed session IDs or employee IDs
-            sessionRiskMap.keySet().removeIf(k -> k.equalsIgnoreCase(sessionId) || k.contains(sessionId));
+            sessionRiskMap.keySet().removeIf(k -> 
+                k.equalsIgnoreCase(sessionId) || 
+                k.contains(sessionId) || 
+                (!clean.isEmpty() && k.toUpperCase().contains(clean.toUpperCase()))
+            );
+        }
+    }
+
+    public void resetSessionRiskForEmployee(String employeeId) {
+        if (employeeId != null) {
+            String eid = employeeId.trim().toUpperCase();
+            sessionRiskMap.keySet().removeIf(k -> k.toUpperCase().contains(eid));
         }
     }
 
     public double getSessionRiskScore(String sessionId) {
         if (sessionId == null) return 0.0;
         return sessionRiskMap.getOrDefault(sessionId, 0.0);
+    }
+
+    public List<EmployeeActivity> getAllActivities() {
+        return activityRepository.findAll();
     }
 
     public EmployeeActivity logActivity(ActivityRequestDTO dto) {
@@ -73,9 +88,10 @@ public class ActivityService {
         // Fetch or auto-create synthetic employee
         Employee employee = employeeRepository.findById(dto.getEmployeeId())
                 .orElseGet(() -> {
+                    String initialName = "EMP1024".equalsIgnoreCase(dto.getEmployeeId()) ? "Malavika" : ("Employee " + dto.getEmployeeId());
                     Employee defaultEmp = new Employee(
                         dto.getEmployeeId(),
-                        "John Doe",
+                        initialName,
                         dto.getEmployeeId().toLowerCase() + "@twinshield-bank.internal",
                         "Retail Banking",
                         defaultRole,
@@ -84,10 +100,14 @@ public class ActivityService {
                     return employeeRepository.save(defaultEmp);
                 });
 
-        Session session = sessionRepository.findById(dto.getSessionId())
+        String effectiveSessionId = (dto.getSessionId() != null && !dto.getSessionId().isBlank())
+                ? dto.getSessionId()
+                : "SESS-" + dto.getEmployeeId() + "-ALPHA";
+
+        Session session = sessionRepository.findById(effectiveSessionId)
                 .orElseGet(() -> {
                     Session newSession = new Session(
-                        dto.getSessionId(),
+                        effectiveSessionId,
                         employee,
                         dto.getIpAddress() != null ? dto.getIpAddress() : "192.168.1.45",
                         dto.getLocationCity() != null ? dto.getLocationCity() : "Chennai",
@@ -98,14 +118,18 @@ public class ActivityService {
                     return sessionRepository.save(newSession);
                 });
 
-        Resource resource = resourceRepository.findById(dto.getResourceId())
+        String effectiveResourceId = (dto.getResourceId() != null && !dto.getResourceId().isBlank())
+                ? dto.getResourceId()
+                : "/api/v1/customer/profile";
+
+        Resource resource = resourceRepository.findById(effectiveResourceId)
                 .orElseGet(() -> {
-                    String resIdLower = dto.getResourceId().toLowerCase();
+                    String resIdLower = effectiveResourceId.toLowerCase();
                     boolean isDecoy = resIdLower.contains("decoy");
                     boolean isVipOrReport = resIdLower.contains("vip") || resIdLower.contains("reports") || resIdLower.contains("manager");
                     int sensitivity = isDecoy ? 100 : (isVipOrReport ? 95 : 50);
                     Resource defaultRes = new Resource(
-                        dto.getResourceId(),
+                        effectiveResourceId,
                         isDecoy ? "SYNTHETIC_HONEY_DECOY" : (isVipOrReport ? "Manager/VIP Endpoint" : "Banking Endpoint"),
                         "API",
                         sensitivity,
@@ -134,7 +158,9 @@ public class ActivityService {
     private void evaluateAndBroadcastRealTimeSecurityEvent(ActivityRequestDTO dto, Session session, Employee employee, Resource resource) {
         try {
             boolean isRbacViolation = dto.getIsRbacViolation() != null ? dto.getIsRbacViolation() : false;
-            boolean isDecoy = resource.getIsDecoy() != null && resource.getIsDecoy();
+            boolean isDecoy = Boolean.TRUE.equals(dto.getIsDecoy()) ||
+                    (resource.getIsDecoy() != null && resource.getIsDecoy()) ||
+                    (dto.getResourceId() != null && (dto.getResourceId().toLowerCase().contains("decoy") || dto.getResourceId().toLowerCase().contains("honey")));
 
             String sessId = session.getSessionId();
             double priorRiskScore = sessionRiskMap.getOrDefault(sessId, 0.0);
@@ -196,12 +222,22 @@ public class ActivityService {
                 }
             }
 
-            if (isRbacViolation) {
+            if (isRbacViolation && !isDecoy) {
                 if (!reasons.contains("Role Permission Violation")) {
                     reasons.add("Role Permission Violation");
                 }
                 // Accumulate risk for RBAC violations: 1st = 35%, 2nd = 70%, 3rd = 100%
                 riskScore = Math.min(100.0, priorRiskScore + 35.0);
+                if (riskScore >= 100.0) {
+                    level = "CRITICAL";
+                    recommendedAction = "ISOLATE";
+                } else if (riskScore >= 70.0) {
+                    level = "RESTRICTED";
+                    recommendedAction = "BLOCK_SENSITIVE";
+                } else {
+                    level = "ELEVATED";
+                    recommendedAction = "BLOCK_SENSITIVE";
+                }
             } else if (!isDecoy) {
                 // For other non-decoy activities, accumulate prior risk if elevated
                 if (priorRiskScore > 0) {
@@ -233,8 +269,8 @@ public class ActivityService {
             SecurityEvent event = new SecurityEvent(session, employee, eventType, severity, description);
             securityEventRepository.save(event);
 
-            // 3. Automated Isolation if Risk >= 100% or Decoy Access
-            String sessionStatus = session.getStatus();
+            // 3. Automated Isolation ONLY if Risk >= 100% or Decoy Access
+            String sessionStatus = "ACTIVE";
             if (riskScore >= 100.0 || isDecoy) {
                 sessionStatus = "ISOLATED";
                 IsolationEvaluationRequestDTO isoReq = new IsolationEvaluationRequestDTO();

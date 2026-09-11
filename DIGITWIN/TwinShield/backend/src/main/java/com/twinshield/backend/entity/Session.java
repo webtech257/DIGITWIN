@@ -33,6 +33,12 @@ public class Session {
     @Column(name = "last_activity_time")
     private LocalDateTime lastActivityTime;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "status", length = 20)
     private String status = "ACTIVE";
 
@@ -76,6 +82,12 @@ public class Session {
 
     public LocalDateTime getLastActivityTime() { return lastActivityTime; }
     public void setLastActivityTime(LocalDateTime lastActivityTime) { this.lastActivityTime = lastActivityTime; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

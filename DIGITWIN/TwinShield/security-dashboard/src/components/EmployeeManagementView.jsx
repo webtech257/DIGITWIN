@@ -49,7 +49,11 @@ export const EmployeeManagementView = () => {
     try {
       const res = await fetch('http://localhost:8080/api/employees', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Source': 'SOC_DASHBOARD',
+          'X-Requester-Role': 'ROLE_SECURITY_ANALYST'
+        },
         body: JSON.stringify(newEmpPayload)
       });
 
@@ -102,7 +106,11 @@ export const EmployeeManagementView = () => {
 
     try {
       const res = await fetch(`http://localhost:8080/api/employees/${empIdToDelete}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'X-Client-Source': 'SOC_DASHBOARD',
+          'X-Requester-Role': 'ROLE_SECURITY_ANALYST'
+        }
       });
 
       if (res.ok) {
@@ -443,11 +451,24 @@ export const EmployeeManagementView = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>
-            Enterprise Employee Provisioning & RBAC Admin
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '0.15rem' }}>
-            Provision corporate banking identities, configure digital twin baselines, and delete inactive staff accounts.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px', margin: 0 }}>
+              Enterprise Employee Provisioning & RBAC Admin
+            </h2>
+            <span style={{
+              background: '#EFF6FF',
+              color: '#2563EB',
+              border: '1px solid #BFDBFE',
+              borderRadius: '6px',
+              padding: '2px 8px',
+              fontSize: '0.72rem',
+              fontWeight: 800
+            }}>
+              🛡️ Exclusive SOC Authority
+            </span>
+          </div>
+          <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '0.25rem', marginBottom: 0 }}>
+            Centralized Security Operations Center authority to provision corporate banking identities, configure digital twin baselines, and decommission staff accounts.
           </p>
         </div>
         

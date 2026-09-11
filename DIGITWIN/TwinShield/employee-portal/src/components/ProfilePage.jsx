@@ -10,7 +10,7 @@ export const ProfilePage = () => {
   const user = currentUser && currentUser.id ? currentUser : DEFAULT_PERSONAS[0];
 
   const empId = user.id || 'EMP1024';
-  const name = user.name || 'John Doe';
+  const name = user.name || 'Malavika';
   const roleName = user.roleName || 'Customer Service Representative';
   const department = user.department || 'Retail Banking';
   const email = user.email || `${empId.toLowerCase()}@twinshield-bank.internal`;

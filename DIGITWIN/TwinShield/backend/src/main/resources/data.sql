@@ -17,9 +17,11 @@ INSERT IGNORE INTO resources (id, name, resource_type, sensitivity_score, is_dec
 ('/api/v1/decoy/manager-financial-report', 'MANAGER_FINANCIAL_REPORT', 'DECOY', 100, TRUE, 'Decoy executive financial summary report');
 
 INSERT IGNORE INTO employees (id, name, email, department, role_id, status, created_at) VALUES
-('EMP1024', 'John Doe', 'john.doe@twinshield-bank.internal', 'Retail Banking', 'ROLE_CUST_SERVICE', 'ACTIVE', CURRENT_TIMESTAMP),
+('EMP1024', 'Malavika', 'malavika@twinshield-bank.internal', 'Retail Banking', 'ROLE_CUST_SERVICE', 'ACTIVE', CURRENT_TIMESTAMP),
 ('EMP2031', 'Sarah Jenkins', 'sarah.jenkins@twinshield-bank.internal', 'Branch Operations', 'ROLE_MANAGER', 'ACTIVE', CURRENT_TIMESTAMP),
 ('EMP5099', 'Alex Vance', 'alex.vance@twinshield-bank.internal', 'IT Security & Admin', 'ROLE_ADMIN', 'ACTIVE', CURRENT_TIMESTAMP);
+
+UPDATE employees SET name = 'Malavika', email = 'malavika@twinshield-bank.internal' WHERE id = 'EMP1024';
 
 INSERT IGNORE INTO behavioral_digital_twin_profiles (employee_id, normal_start_hour, normal_end_hour, avg_daily_accesses, avg_session_duration_minutes, normal_location, known_devices, known_ip_ranges, typical_resources, last_baseline_update) VALUES
 ('EMP1024', 9, 18, 25, 480, 'Chennai', 'BANK-PC-1024', '192.168.1.0/24', '/api/v1/customer/profile, /api/v1/transactions/search', CURRENT_TIMESTAMP),

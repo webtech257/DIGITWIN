@@ -7,6 +7,7 @@ public class EmployeeCreateUpdateDTO {
     private String department;
     private String status;
     private String password;
+    private String roleId;
     private RoleDTO role;
 
     public EmployeeCreateUpdateDTO() {}
@@ -78,7 +79,12 @@ public class EmployeeCreateUpdateDTO {
     }
 
     public String getRoleId() {
+        if (roleId != null && !roleId.isBlank()) return roleId.trim();
         return role != null ? role.getId() : null;
+    }
+
+    public void setRoleId(String roleId) {
+        this.roleId = roleId;
     }
 
     public static class RoleDTO {

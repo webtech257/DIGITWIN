@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SOCProvider } from './context/SOCContext';
 import { SOCNavbar } from './components/SOCNavbar';
 import { OverviewSection } from './components/OverviewSection';
+import { GlobalOverviewView } from './components/GlobalOverviewView';
 import { LiveThreatFeed } from './components/LiveThreatFeed';
 import { EmployeeRiskTable } from './components/EmployeeRiskTable';
 import { EmployeeManagementView } from './components/EmployeeManagementView';
@@ -23,14 +24,9 @@ const SOCDashboardContent = () => {
       <SOCNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-        <OverviewSection />
+        {activeTab !== 'overview' && <OverviewSection />}
 
-        {activeTab === 'overview' && (
-          <>
-            <LiveThreatFeed />
-            <EmployeeRiskTable onInspectEmployee={handleInspectEmployee} />
-          </>
-        )}
+        {activeTab === 'overview' && <GlobalOverviewView />}
 
         {activeTab === 'feed' && <LiveThreatFeed />}
         {activeTab === 'employee-risk' && <EmployeeRiskTable onInspectEmployee={handleInspectEmployee} />}

@@ -4,51 +4,76 @@ const SOCContext = createContext(null);
 
 const parseRiskScoreFromDesc = (desc, severity) => {
   if (!desc) return severity === 'CRITICAL' ? 95.0 : 45.0;
+  if (desc.includes('RESTORE') || desc.includes('RESOLVED') || desc.includes('Restored')) return 0.0;
   const match = desc.match(/Risk\s*Score:?\s*([\d.]+)/i) || desc.match(/(\d+(?:\.\d+)?)%/);
   if (match && match[1]) {
     const val = parseFloat(match[1]);
-    if (!isNaN(val) && val > 0) return val;
+    if (!isNaN(val) && val >= 0) return val;
   }
   return severity === 'CRITICAL' ? 95.0 : 45.0;
 };
 
+export const FALLBACK_CAMPUS_GEO = {
+  lat: null,
+  lng: null,
+  city: 'Offline / Standby',
+  ipAddress: '192.168.1.104',
+  isLiveDevice: false,
+  geofenceStatus: 'OFFLINE',
+  isImpossibleTravel: false,
+  lastUpdated: 'Not Logged In'
+};
 
 export const SOCProvider = ({ children }) => {
   const [stats, setStats] = useState({
     totalEmployees: 3,
-    activeSessions: 3,
+    activeSessions: 1,
     suspiciousSessions: 0,
     criticalThreats: 0,
     isolatedSessions: 0
   });
 
   const [threatEvents, setThreatEvents] = useState([]);
+  const [telemetryRefreshRate, setTelemetryRefreshRate] = useState(5);
+  const [lastTelemetrySyncTime, setLastTelemetrySyncTime] = useState(new Date());
 
   const [employees, setEmployees] = useState([
     {
       id: 'EMP1024',
-      name: 'John Doe',
+      name: 'Malavika',
       role: 'Customer Service Representative',
       department: 'Retail Banking',
       riskScore: 0.0,
       status: 'NORMAL',
+      onlineStatus: 'OFFLINE',
+      isOnline: false,
       currentThreat: 'NONE',
       sessionId: 'SESS-1024-ALPHA',
       device: 'BANK-PC-1024',
-      location: 'Chennai Office',
+      location: 'Chennai Central HQ - Retail Desk #04',
+      geo: {
+        lat: null,
+        lng: null,
+        city: 'Offline / Standby',
+        ipAddress: '192.168.1.104',
+        isLiveDevice: false,
+        geofenceStatus: 'OFFLINE',
+        isImpossibleTravel: false,
+        lastUpdated: 'Not Logged In'
+      },
       expectedBehavior: {
         workingHours: '09:00 - 18:00 IST',
         device: 'BANK-PC-1024',
-        location: 'Chennai Office',
+        location: 'Chennai Central HQ',
         avgDailyAccesses: 25,
         typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
       },
       currentBehavior: {
-        loginTime: '09:00 AM (Normal)',
+        loginTime: 'Not Logged In',
         device: 'BANK-PC-1024 (Known)',
-        location: 'Chennai Office (Normal)',
-        accessesCount: 5,
-        resourceAccessed: '/api/v1/customer/profile'
+        location: 'Offline / Standby',
+        accessesCount: 0,
+        resourceAccessed: 'None'
       }
     },
     {
@@ -58,23 +83,35 @@ export const SOCProvider = ({ children }) => {
       department: 'Branch Operations',
       riskScore: 0.0,
       status: 'NORMAL',
+      onlineStatus: 'OFFLINE',
+      isOnline: false,
       currentThreat: 'NONE',
       sessionId: 'SESS-2031-BETA',
       device: 'BANK-PC-2031',
-      location: 'Chennai Office',
+      location: 'Guindy Branch - Executive Suite',
+      geo: {
+        lat: null,
+        lng: null,
+        city: 'Offline / Standby',
+        ipAddress: '192.168.1.145',
+        isLiveDevice: false,
+        geofenceStatus: 'OFFLINE',
+        isImpossibleTravel: false,
+        lastUpdated: 'Not Logged In'
+      },
       expectedBehavior: {
         workingHours: '08:30 - 19:00 IST',
         device: 'BANK-PC-2031',
-        location: 'Chennai Office',
+        location: 'Guindy Operations Hub',
         avgDailyAccesses: 40,
         typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
       },
       currentBehavior: {
-        loginTime: '08:45 AM (Normal)',
+        loginTime: 'Not Logged In',
         device: 'BANK-PC-2031 (Known)',
-        location: 'Chennai Office (Normal)',
-        accessesCount: 8,
-        resourceAccessed: '/api/v1/reports/manager-summary'
+        location: 'Offline / Standby',
+        accessesCount: 0,
+        resourceAccessed: 'None'
       }
     },
     {
@@ -84,23 +121,35 @@ export const SOCProvider = ({ children }) => {
       department: 'IT Security & Admin',
       riskScore: 0.0,
       status: 'NORMAL',
+      onlineStatus: 'OFFLINE',
+      isOnline: false,
       currentThreat: 'NONE',
       sessionId: 'SESS-5099-GAMMA',
       device: 'ADMIN-PC-5099',
-      location: 'Chennai Office',
+      location: 'Nungambakkam SOC - Security Terminal',
+      geo: {
+        lat: null,
+        lng: null,
+        city: 'Offline / Standby',
+        ipAddress: '10.0.4.88',
+        isLiveDevice: false,
+        geofenceStatus: 'OFFLINE',
+        isImpossibleTravel: false,
+        lastUpdated: 'Not Logged In'
+      },
       expectedBehavior: {
         workingHours: '09:00 - 18:00 IST',
         device: 'ADMIN-PC-5099',
-        location: 'Chennai Office',
+        location: 'Nungambakkam SOC Command',
         avgDailyAccesses: 50,
-        typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary'
+        typicalResources: '/api/v1/customer/profile, /api/v1/reports/manager-summary, /api/v1/admin/system'
       },
       currentBehavior: {
-        loginTime: '09:00 AM (Normal)',
+        loginTime: 'Not Logged In',
         device: 'ADMIN-PC-5099 (Known)',
-        location: 'Chennai Office (Normal)',
-        accessesCount: 12,
-        resourceAccessed: '/api/v1/reports/manager-summary'
+        location: 'Nungambakkam SOC Command (Normal)',
+        accessesCount: 0,
+        resourceAccessed: 'None'
       }
     }
   ]);
@@ -112,25 +161,26 @@ export const SOCProvider = ({ children }) => {
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
 
-const formatTimestamp = (rawDate) => {
-  if (!rawDate) return new Date().toLocaleTimeString();
-  if (Array.isArray(rawDate)) {
-    const [y, m, d, hh = 0, mm = 0, ss = 0] = rawDate;
-    return new Date(y, m - 1, d, hh, mm, ss).toLocaleTimeString();
-  }
-  const parsed = new Date(rawDate);
-  return isNaN(parsed.getTime()) ? new Date().toLocaleTimeString() : parsed.toLocaleTimeString();
-};
+  const formatTimestamp = (rawDate) => {
+    if (!rawDate) return new Date().toLocaleTimeString();
+    if (Array.isArray(rawDate)) {
+      const [y, m, d, hh = 0, mm = 0, ss = 0] = rawDate;
+      return new Date(y, m - 1, d, hh, mm, ss).toLocaleTimeString();
+    }
+    const parsed = new Date(rawDate);
+    return isNaN(parsed.getTime()) ? new Date().toLocaleTimeString() : parsed.toLocaleTimeString();
+  };
 
-  // --- 1. CONTINUOUS FAST POLL BACKUP ENGINE (EVERY 1.5 Seconds) ---
+  // --- 1. CONTINUOUS FAST POLL ENGINE (EVERY 1.5 Seconds) ---
   useEffect(() => {
     const fetchLatestSecurityEvents = async () => {
       try {
-        const [empRes, eventsRes, activitiesRes, isolationRes] = await Promise.all([
+        const [empRes, eventsRes, activitiesRes, isolationRes, activeSessionsRes] = await Promise.all([
           fetch('http://localhost:8080/api/employees').catch(() => null),
           fetch('http://localhost:8080/api/security-events').catch(() => null),
           fetch('http://localhost:8080/api/activities').catch(() => null),
-          fetch('http://localhost:8080/api/isolation/actions').catch(() => null)
+          fetch('http://localhost:8080/api/isolation/actions').catch(() => null),
+          fetch('http://localhost:8080/api/sessions/active').catch(() => null)
         ]);
 
         let backendEmps = [];
@@ -153,25 +203,35 @@ const formatTimestamp = (rawDate) => {
           isolationActionsData = await isolationRes.json();
         }
 
-        // Merge live backend isolation actions into isolatedSessions state
-        if (Array.isArray(isolationActionsData) && isolationActionsData.length > 0) {
-          setIsolatedSessions((prev) => {
-            const map = new Map(prev.map((s) => [s.sessionId, s]));
-            isolationActionsData.forEach((act) => {
-              const sId = act.sessionId || `SESS-${act.employee?.id || 'EMP1024'}-LIVE`;
-              const existing = map.get(sId);
-              map.set(sId, {
-                sessionId: sId,
-                employeeId: act.employee?.id || 'EMP1024',
-                employeeName: act.employee?.name || (act.employee?.id === 'EMP1024' ? 'John Doe (Synthetic)' : 'Bank Employee'),
-                riskScore: act.riskScore != null ? act.riskScore : (existing?.riskScore || 96.5),
-                reason: act.reason || existing?.reason || 'Zero-Trust Policy Anomaly Containment',
-                isolatedAt: act.createdAt ? formatTimestamp(act.createdAt) : (existing?.isolatedAt || 'Just Now'),
-                status: act.actionType || existing?.status || 'ISOLATED'
-              });
-            });
-            return Array.from(map.values());
+        let activeSessionsData = [];
+        if (activeSessionsRes && activeSessionsRes.ok) {
+          activeSessionsData = await activeSessionsRes.json();
+        }
+
+        const activeSessionsMap = new Map();
+        if (Array.isArray(activeSessionsData)) {
+          activeSessionsData.forEach((s) => {
+            if (s.employeeId) {
+              activeSessionsMap.set(s.employeeId.toUpperCase(), s);
+            }
           });
+        }
+
+        // Merge live backend isolation actions into isolatedSessions state
+        if (Array.isArray(isolationActionsData)) {
+          const mapped = isolationActionsData.map((act) => {
+            const sId = act.sessionId || `SESS-${act.employeeId || 'EMP1024'}-LIVE`;
+            return {
+              sessionId: sId,
+              employeeId: act.employeeId || 'EMP1024',
+              employeeName: act.employeeName || (act.employeeId === 'EMP1024' ? 'Malavika' : 'Bank Employee'),
+              riskScore: act.riskScore != null ? act.riskScore : 100.0,
+              reason: act.reason || 'Zero-Trust Policy Anomaly Containment',
+              isolatedAt: act.isolatedAt ? formatTimestamp(act.isolatedAt) : (act.createdAt ? formatTimestamp(act.createdAt) : 'Just Now'),
+              status: act.status || 'ISOLATED'
+            };
+          });
+          setIsolatedSessions(mapped);
         }
 
         // Count real backend access activities per employee
@@ -217,10 +277,12 @@ const formatTimestamp = (rawDate) => {
 
         const latestPerEmp = {};
         formatted.forEach((ev) => {
-          latestPerEmp[ev.employeeId] = ev;
+          if (!latestPerEmp[ev.employeeId]) {
+            latestPerEmp[ev.employeeId] = ev;
+          }
         });
 
-        // SINGLE ATOMIC STATE UPDATE FOR ALL EMPLOYEES
+        // Update Employees State with real-time coordinates, session status & digital twin baseline
         setEmployees((prev) => {
           const existingMap = new Map(prev.map((e) => [e.id, e]));
 
@@ -236,6 +298,10 @@ const formatTimestamp = (rawDate) => {
                     status: bEmp.status || existing.status
                   };
                 }
+                const defaultCampusLat = bEmp.id === 'EMP2031' ? 12.9815 : bEmp.id === 'EMP5099' ? 13.0524 : 13.0827;
+                const defaultCampusLng = bEmp.id === 'EMP2031' ? 80.2180 : bEmp.id === 'EMP5099' ? 80.2508 : 80.2707;
+                const defaultCampusCity = bEmp.department ? `${bEmp.department} Branch` : 'Chennai Central Campus';
+
                 return {
                   id: bEmp.id,
                   name: bEmp.name,
@@ -246,52 +312,139 @@ const formatTimestamp = (rawDate) => {
                   currentThreat: 'NONE',
                   sessionId: `SESS-${bEmp.id}-LIVE`,
                   device: `BANK-PC-${bEmp.id}`,
-                  location: 'Chennai Office',
+                  location: defaultCampusCity,
+                  geo: {
+                    lat: defaultCampusLat,
+                    lng: defaultCampusLng,
+                    city: defaultCampusCity,
+                    ipAddress: '192.168.1.104',
+                    isLiveDevice: false,
+                    geofenceStatus: 'AUTHORIZED_PERIMETER',
+                    isImpossibleTravel: false,
+                    lastUpdated: 'Designated Campus'
+                  },
                   expectedBehavior: {
                     workingHours: '09:00 - 18:00 IST',
                     device: `BANK-PC-${bEmp.id}`,
-                    location: 'Chennai Office',
+                    location: defaultCampusCity,
                     avgDailyAccesses: 25,
                     typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
                   },
                   currentBehavior: {
-                    loginTime: '10:00 AM (Normal)',
+                    loginTime: 'Not Logged In',
                     device: `BANK-PC-${bEmp.id} (Known)`,
-                    location: 'Chennai Office (Normal)',
-                    accessesCount: (realActivityCounts[bEmp.id] || 0) + 5,
-                    resourceAccessed: '/api/v1/customer/profile'
+                    location: `${defaultCampusCity} (Normal)`,
+                    accessesCount: (realActivityCounts[bEmp.id] || 0),
+                    resourceAccessed: 'None'
                   }
                 };
               })
             : prev;
 
-          // Overlay live risk score and security event telemetry & ensure full digital twin properties
+          // Overlay active online sessions & real-time GPS coordinates
           return mergedList.map((emp) => {
+            const activeSession = activeSessionsMap.get(emp.id.toUpperCase());
+            const isOnline = Boolean(activeSession);
+            const isQuarantined = emp.status === 'ISOLATED' || emp.status === 'SUSPENDED';
+
+            const resolvedName = activeSession?.employeeName || emp.name || emp.id;
+
+            const defaultCampusGeo = {
+              lat: null,
+              lng: null,
+              city: 'Offline / Standby',
+              ipAddress: '192.168.1.104',
+              isLiveDevice: false,
+              geofenceStatus: 'OFFLINE',
+              isImpossibleTravel: false,
+              lastUpdated: 'Not Logged In'
+            };
+
+            const trustedSources = ['BROWSER_LOCATION', 'MOBILE_GPS', 'MANUAL'];
+            const hasPreciseLocation = Boolean(
+              activeSession && trustedSources.includes(activeSession.locationSource) &&
+              typeof activeSession.latitude === 'number' && typeof activeSession.longitude === 'number'
+            );
+            const liveLatVal = hasPreciseLocation ? activeSession.latitude : null;
+            const liveLngVal = hasPreciseLocation ? activeSession.longitude : null;
+            const liveCityName = activeSession?.city || (isOnline ? 'Location not shared' : 'Offline / Standby');
+
+            // Compute impossible travel divergence from baseline campus (Chennai Central HQ)
+            const baselineLat = 13.0827;
+            const baselineLng = 80.2707;
+            const isImpossibleTravel = hasPreciseLocation && (Math.abs(liveLatVal - baselineLat) > 3.0 || Math.abs(liveLngVal - baselineLng) > 3.0);
+
+            let liveGeo = defaultCampusGeo;
+            let locationStr = 'Offline (Session Not Started)';
+            let onlineSt = isQuarantined ? 'OFFLINE_QUARANTINED' : isOnline ? 'ONLINE_ACTIVE' : 'OFFLINE';
+
+            if (isOnline && activeSession) {
+              liveGeo = {
+                lat: liveLatVal,
+                lng: liveLngVal,
+                baselineLat: baselineLat,
+                baselineLng: baselineLng,
+                city: liveCityName,
+                ipAddress: activeSession.ipAddress || '192.168.1.104',
+                isLiveDevice: true,
+                geofenceStatus: isQuarantined ? 'QUARANTINE_LOCKED' : (isImpossibleTravel ? 'IMPOSSIBLE_TRAVEL_BREACH' : 'AUTHORIZED_PERIMETER'),
+                isImpossibleTravel: isImpossibleTravel,
+                lastUpdated: `Live (${activeSession.secondsAgo || 0}s ago)`
+              };
+              locationStr = hasPreciseLocation
+                ? `${liveCityName} (${Number(liveLatVal).toFixed(4)}° N, ${Number(liveLngVal).toFixed(4)}° E)`
+                : liveCityName;
+              if (activeSession.riskScore >= 70 && !isQuarantined) {
+                onlineSt = 'ELEVATED_RISK';
+              }
+            }
+
             const latestEv = latestPerEmp[emp.id];
             const baseExpected = emp.expectedBehavior || {
               workingHours: '09:00 - 18:00 IST',
               device: emp.device || `BANK-PC-${emp.id}`,
-              location: emp.location || 'Chennai Office',
+              location: defaultCampusGeo.city,
               avgDailyAccesses: 25,
               typicalResources: '/api/v1/customer/profile, /api/v1/transactions/search'
             };
 
-            // Dynamic accessesCount computed from real backend activities performed
-            const dynamicAccesses = (realActivityCounts[emp.id] || 0) + 5;
+            const dynamicAccesses = activeSession?.accessesCount != null
+              ? activeSession.accessesCount
+              : Math.max((realActivityCounts[emp.id] || 0) + (isOnline ? 1 : 0), emp.currentBehavior?.accessesCount || 0);
 
-            const baseCurrent = emp.currentBehavior || {
-              loginTime: '10:00 AM (Normal)',
-              device: `${emp.device || 'BANK-PC-' + emp.id} (Known)`,
-              location: `${emp.location || 'Chennai Office'} (Normal)`,
+            let liveResource = (activeSession && activeSession.lastEndpoint) ? activeSession.lastEndpoint : '/api/v1/customer/profile';
+            if (activeSession && activeSession.lastEndpoint) {
+              liveResource = activeSession.lastEndpoint;
+            } else if (latestEv) {
+              const match = (latestEv.event || '').match(/(\/api\/v1\/[a-zA-Z0-9_\-\/]+)/);
+              if (match && match[1]) {
+                liveResource = match[1];
+              }
+            }
+
+            const liveLoginTime = isOnline
+              ? (activeSession.loginTime ? (activeSession.loginTime.includes('IST') || activeSession.loginTime.includes('Today') ? activeSession.loginTime : formatTimestamp(activeSession.loginTime) + ' (Live Session)') : 'Today (Live Session)')
+              : 'Not Logged In';
+
+            const liveDeviceStr = isOnline
+              ? `${activeSession.deviceFingerprint || 'DEV-FP-Chrome-Win64'} (Online Live Device)`
+              : `BANK-PC-${emp.id} (Offline)`;
+
+            const dynamicCurrentBehavior = {
+              loginTime: liveLoginTime,
+              device: liveDeviceStr,
+              location: isOnline ? locationStr : `${defaultCampusGeo.city} (Offline)`,
               accessesCount: dynamicAccesses,
-              resourceAccessed: '/api/v1/customer/profile'
+              resourceAccessed: liveResource
             };
 
             if (latestEv) {
               const isRestoredEv = (latestEv.event || '').includes('RESTORE') || (latestEv.event || '').includes('RESOLVED');
-              const latestRiskScore = isRestoredEv ? 0.0 : latestEv.riskScore;
-              const newStatus = isRestoredEv ? 'NORMAL' : latestRiskScore >= 95.0 ? 'ISOLATED' : latestRiskScore >= 80.0 ? 'RESTRICTED' : latestRiskScore >= 60.0 ? 'MONITOR' : 'NORMAL';
-              const newThreat = isRestoredEv ? 'NONE' : (latestEv.event || '').includes('RBAC') || (latestEv.event || '').includes('VIOLATION')
+              const isDisableEv = (latestEv.event || '').includes('DISABLE') || (latestEv.event || '').includes('SUSPEND');
+              const latestRiskScore = isRestoredEv ? 0.0 : isDisableEv ? 100.0 : latestEv.riskScore;
+              const isEmpSuspended = emp.status === 'SUSPENDED' || (latestEv.event || '').includes('DISABLE');
+              const newStatus = isEmpSuspended ? 'SUSPENDED' : isRestoredEv ? 'NORMAL' : latestRiskScore >= 95.0 ? 'ISOLATED' : latestRiskScore >= 80.0 ? 'RESTRICTED' : latestRiskScore >= 60.0 ? 'MONITOR' : (emp.status || 'NORMAL');
+              const newThreat = isRestoredEv ? 'NONE' : isDisableEv ? 'ACCOUNT_PERMANENTLY_DISABLED' : (latestEv.event || '').includes('RBAC') || (latestEv.event || '').includes('VIOLATION')
                 ? 'ROLE_VIOLATION'
                 : (latestEv.event || '').includes('DECOY')
                 ? 'DECOY_EXFILTRATION'
@@ -301,57 +454,51 @@ const formatTimestamp = (rawDate) => {
 
               return {
                 ...emp,
+                name: resolvedName,
                 riskScore: latestRiskScore,
                 status: newStatus,
+                isOnline: isOnline,
+                onlineStatus: newStatus === 'ISOLATED' || newStatus === 'SUSPENDED' ? 'OFFLINE_QUARANTINED' : onlineSt,
                 currentThreat: newThreat,
                 device: emp.device || `BANK-PC-${emp.id}`,
-                location: emp.location || 'Chennai Office',
+                location: locationStr,
+                geo: liveGeo ? {
+                  ...liveGeo,
+                  geofenceStatus: newStatus === 'ISOLATED' ? 'QUARANTINE_LOCKED' : liveGeo.geofenceStatus
+                } : defaultCampusGeo,
                 expectedBehavior: baseExpected,
-                currentBehavior: {
-                  ...baseCurrent,
-                  resourceAccessed: latestEv.event,
-                  accessesCount: dynamicAccesses
-                }
+                currentBehavior: dynamicCurrentBehavior
               };
             }
 
             return {
               ...emp,
+              name: resolvedName,
               riskScore: emp.riskScore != null ? emp.riskScore : 0.0,
               status: emp.status || 'NORMAL',
+              isOnline: isOnline,
+              onlineStatus: onlineSt,
               currentThreat: emp.currentThreat || 'NONE',
               device: emp.device || `BANK-PC-${emp.id}`,
-              location: emp.location || 'Chennai Office',
+              location: locationStr,
+              geo: liveGeo || defaultCampusGeo,
               expectedBehavior: baseExpected,
-              currentBehavior: {
-                ...baseCurrent,
-                accessesCount: dynamicAccesses
-              }
+              currentBehavior: dynamicCurrentBehavior
             };
           });
         });
 
-        // Re-populate isolated sessions on page refresh/poll if any critical events exist
-        formatted.filter((ev) => ev.riskScore >= 95.0 || ev.event.includes('ISOLATED')).forEach((criticalEv) => {
-          setIsolatedSessions((prev) => {
-            const existing = prev.find((s) => s.employeeId === criticalEv.employeeId || s.sessionId.includes(criticalEv.employeeId));
-            if (existing) {
-              return prev;
-            }
-            return [
-              {
-                sessionId: `SESS-${criticalEv.employeeId}-ISOLATED`,
-                employeeId: criticalEv.employeeId,
-                employeeName: criticalEv.employeeId === 'EMP1024' ? 'John Doe (Synthetic)' : criticalEv.employeeId,
-                riskScore: criticalEv.riskScore,
-                reason: `Automated Isolation: Risk Score ${criticalEv.riskScore}% crossed threshold. Event: ${criticalEv.event}`,
-                isolatedAt: criticalEv.timestamp,
-                status: 'ISOLATED'
-              },
-              ...prev
-            ];
-          });
-        });
+        // Update overall platform statistics
+        setStats((prev) => ({
+          ...prev,
+          totalEmployees: backendEmps.length > 0 ? backendEmps.length : prev.totalEmployees,
+          activeSessions: activeSessionsMap.size,
+          isolatedSessions: isolationActionsData.length,
+          criticalThreats: formatted.filter((ev) => ev.severity === 'CRITICAL').length
+        }));
+
+        setLastTelemetrySyncTime(new Date());
+
       } catch (err) {
         console.warn('Security events polling warning:', err.message);
       }
@@ -362,143 +509,6 @@ const formatTimestamp = (rawDate) => {
 
     return () => clearInterval(interval);
   }, []);
-
-  // --- 2. REAL-TIME WEBSOCKET LISTENER ---
-  useEffect(() => {
-    let socket;
-    let reconnectTimer;
-
-    const connectWebSocket = () => {
-      try {
-        socket = new WebSocket('ws://localhost:8080/ws-direct');
-        wsRef.current = socket;
-
-        socket.onopen = () => {
-          console.log('🟢 Security Dashboard Connected to Real-Time WebSocket (/ws-direct)');
-          setWsConnected(true);
-        };
-
-        socket.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('⚡ SOC Real-Time Security Event Received:', data);
-
-            if (data.type === 'SECURITY_EVENT') {
-              handleIncomingSecurityEvent(data);
-            }
-          } catch (err) {
-            console.warn('Error parsing WS message:', err);
-          }
-        };
-
-        socket.onclose = () => {
-          setWsConnected(false);
-          reconnectTimer = setTimeout(connectWebSocket, 3000);
-        };
-
-        socket.onerror = (err) => {
-          console.warn('WebSocket connection error:', err);
-          socket.close();
-        };
-      } catch (err) {
-        setWsConnected(false);
-        reconnectTimer = setTimeout(connectWebSocket, 3000);
-      }
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (socket) socket.close();
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-    };
-  }, []);
-
-  // --- 3. HANDLE INCOMING REAL-TIME SECURITY EVENT & RE-CALCULATE REACT STATE ---
-  const handleIncomingSecurityEvent = (data) => {
-    const { employeeId, sessionId, eventType, riskScore, severity, status, resource, timestamp } = data;
-    const wsTimestamp = timestamp || new Date().toLocaleTimeString();
-    const newId = `ws-${Date.now()}-${Math.random()}`;
-
-    // A. Update Live Threat Feed
-    setThreatEvents((prev) => [
-      {
-        id: newId,
-        timestamp: wsTimestamp,
-        employeeId: employeeId || 'EMP1024',
-        event: `${eventType}: ${resource || 'Access Request'}`,
-        severity: severity || (riskScore > 90 ? 'CRITICAL' : riskScore > 70 ? 'HIGH' : 'MEDIUM'),
-        riskScore: riskScore
-      },
-      ...prev.filter((ev) => ev.id !== newId)
-    ].slice(0, 40));
-
-    // B. Recalculate Employee Risk Leaderboard & Digital Twin Baseline
-    setEmployees((prev) =>
-      prev.map((emp) => {
-        if (emp.id === employeeId || (employeeId === 'EMP1024' && emp.id === 'EMP1024')) {
-          const newStatus = status === 'ISOLATED' ? 'ISOLATED' : riskScore >= 80 ? 'RESTRICTED' : riskScore >= 60 ? 'MONITOR' : 'NORMAL';
-          const newThreat = eventType.includes('RBAC') || eventType.includes('VIOLATION') ? 'ROLE_VIOLATION' : eventType.includes('DECOY') ? 'DECOY_EXFILTRATION' : riskScore > 75 ? 'UNUSUALLY_HIGH_ACCESS' : emp.currentThreat;
-
-          return {
-            ...emp,
-            riskScore: riskScore,
-            status: newStatus,
-            currentThreat: newThreat,
-            currentBehavior: {
-              ...emp.currentBehavior,
-              resourceAccessed: resource || emp.currentBehavior.resourceAccessed,
-              accessesCount: emp.currentBehavior.accessesCount != null ? emp.currentBehavior.accessesCount : 5
-            }
-          };
-        }
-        return emp;
-      })
-    );
-
-    // C. Recalculate Dashboard KPI Summary Cards
-    setStats((prev) => {
-      let isCritical = riskScore > 90;
-      let isSuspicious = riskScore > 60;
-      let isIsolated = status === 'ISOLATED';
-
-      return {
-        ...prev,
-        suspiciousSessions: isSuspicious ? prev.suspiciousSessions + 1 : prev.suspiciousSessions,
-        criticalThreats: isCritical ? prev.criticalThreats + 1 : prev.criticalThreats,
-        isolatedSessions: isIsolated ? prev.isolatedSessions + 1 : prev.isolatedSessions
-      };
-    });
-
-    // D. If session is isolated, update Isolated Sessions Manager panel
-    if (status === 'ISOLATED' || riskScore >= 95.0) {
-      setIsolatedSessions((prev) => [
-        {
-          sessionId: sessionId || `SESS-${employeeId}-ISOLATED`,
-          employeeId: employeeId,
-          employeeName: employeeId === 'EMP1024' ? 'John Doe (Synthetic)' : employeeId,
-          riskScore: riskScore,
-          reason: `Automated Isolation: Risk Score ${riskScore}% crossed threshold. Resource: ${resource}`,
-          isolatedAt: wsTimestamp,
-          status: 'ISOLATED'
-        },
-        ...prev.filter((s) => s.sessionId !== sessionId && s.employeeId !== employeeId)
-      ]);
-
-      setAuditLogs((prev) => [
-        {
-          id: Date.now(),
-          timestamp: wsTimestamp,
-          actor: 'SYSTEM_POLICY_ENGINE',
-          action: 'AUTOMATED_SESSION_ISOLATION',
-          target: `Session ${sessionId || employeeId}`,
-          details: `Quarantined automatically. Risk Score ${riskScore}% > 95% threshold.`
-        },
-        ...prev
-      ]);
-    }
-  };
-
 
   // SOC Administrator Actions
   const handleRestoreSession = async (sessionId, employeeId) => {
@@ -536,7 +546,6 @@ const formatTimestamp = (rawDate) => {
       })
     );
 
-    // Clear critical events from threatEvents feed
     setThreatEvents((prev) =>
       prev.map((ev) => {
         if (ev.employeeId === empId || ev.employeeId === 'EMP1024') {
@@ -586,28 +595,8 @@ const formatTimestamp = (rawDate) => {
     setAuditLogs((prev) => [{ id: Date.now(), timestamp: new Date().toLocaleTimeString(), actor: 'SOC Analyst', action: 'DISABLE_ACCOUNT', target: `Employee ${empId}`, details: 'Account permanently suspended due to malicious threat' }, ...prev]);
   };
 
-
-  // Synthetic Attack Trigger Simulator
-  const triggerSyntheticAttackDemo = async () => {
-    try {
-      const payload = {
-        sessionId: 'SESS-1024-ALPHA',
-        employeeId: 'EMP1024',
-        resourceId: '/api/v1/decoy/vip-customer-internal-001',
-        actionType: 'EXPORT_PAYLOAD',
-        recordsAccessed: 300,
-        dataVolumeBytes: 45000000,
-        isRbacViolation: true
-      };
-
-      await fetch('http://localhost:8080/api/activities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } catch (err) {
-      console.warn('Attack demo trigger error:', err.message);
-    }
+  const refreshLocations = () => {
+    setLastTelemetrySyncTime(new Date());
   };
 
   return (
@@ -620,11 +609,14 @@ const formatTimestamp = (rawDate) => {
       selectedEmployeeId,
       setSelectedEmployeeId,
       wsConnected,
+      telemetryRefreshRate,
+      setTelemetryRefreshRate,
+      lastTelemetrySyncTime,
+      refreshLocations,
       handleRestoreSession,
       handleRequireMFA,
       handleExtendIsolation,
-      handleDisableAccount,
-      triggerSyntheticAttackDemo
+      handleDisableAccount
     }}>
       {children}
     </SOCContext.Provider>

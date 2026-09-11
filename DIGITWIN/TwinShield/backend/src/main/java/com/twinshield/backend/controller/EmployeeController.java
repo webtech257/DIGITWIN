@@ -40,21 +40,71 @@ public class EmployeeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<Employee> createOrUpdateEmployee(@RequestBody EmployeeCreateUpdateDTO dto) {
-        Employee saved = employeeService.saveOrUpdateEmployee(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    @PostMapping(value = {"", "/create-or-update"})
+    public ResponseEntity<?> createOrUpdateEmployee(
+            @RequestBody EmployeeCreateUpdateDTO dto,
+            @RequestHeader(value = "X-Client-Source", required = false) String clientSource,
+            @RequestHeader(value = "X-Requester-Role", required = false) String requesterRole,
+            @RequestHeader(value = "Origin", required = false) String origin,
+            @RequestHeader(value = "Referer", required = false) String referer) {
+
+        boolean isSocAuthorized = "SOC_DASHBOARD".equalsIgnoreCase(clientSource)
+                || "ROLE_SECURITY_ANALYST".equalsIgnoreCase(requesterRole)
+                || (origin != null && origin.contains("5174"))
+                || (referer != null && referer.contains("5174"));
+
+        if (!isSocAuthorized) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of(
+                    "error", "Access Denied: Only Security Operations Center (SOC) personnel have authority to provision employees.",
+                    "status", 403,
+                    "policy", "EXCLUSIVE_SOC_AUTHORITY"
+            ));
+        }
+
+        try {
+            Employee saved = employeeService.saveOrUpdateEmployee(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : e.toString(), "type", e.getClass().getName()));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable String id, @RequestBody EmployeeCreateUpdateDTO dto) {
-        dto.setId(id);
-        Employee saved = employeeService.saveOrUpdateEmployee(dto);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<?> updateEmployee(@PathVariable String id, @RequestBody EmployeeCreateUpdateDTO dto) {
+        try {
+            dto.setId(id);
+            Employee saved = employeeService.saveOrUpdateEmployee(dto);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : e.toString(), "type", e.getClass().getName()));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable String id) {
+    public ResponseEntity<?> deleteEmployee(
+            @PathVariable String id,
+            @RequestHeader(value = "X-Client-Source", required = false) String clientSource,
+            @RequestHeader(value = "X-Requester-Role", required = false) String requesterRole,
+            @RequestHeader(value = "Origin", required = false) String origin,
+            @RequestHeader(value = "Referer", required = false) String referer) {
+
+        boolean isSocAuthorized = "SOC_DASHBOARD".equalsIgnoreCase(clientSource)
+                || "ROLE_SECURITY_ANALYST".equalsIgnoreCase(requesterRole)
+                || (origin != null && origin.contains("5174"))
+                || (referer != null && referer.contains("5174"));
+
+        if (!isSocAuthorized) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of(
+                    "error", "Access Denied: Only Security Operations Center (SOC) personnel have authority to decommission employees.",
+                    "status", 403,
+                    "policy", "EXCLUSIVE_SOC_AUTHORITY"
+            ));
+        }
+
         boolean deleted = employeeService.deleteEmployee(id);
         if (deleted) {
             return ResponseEntity.noContent().build();

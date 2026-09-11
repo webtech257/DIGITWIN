@@ -106,20 +106,6 @@ export const MFAChallengeScreen = ({ currentUser, onCompleteMfa }) => {
           </button>
         </form>
 
-        <button
-          onClick={() => onCompleteMfa('123456')}
-          style={{
-            marginTop: '1.25rem',
-            background: 'transparent',
-            border: 'none',
-            color: '#2563EB',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            textDecoration: 'underline'
-          }}
-        >
-          Auto-fill Demo Passcode (123456)
-        </button>
       </div>
     </div>
   );

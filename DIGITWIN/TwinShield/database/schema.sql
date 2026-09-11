@@ -186,7 +186,7 @@ INSERT IGNORE INTO resources (id, name, resource_type, sensitivity_score, is_dec
 ('/api/v1/decoy/confidential-vip-001', 'Confidential VIP Vault Decoy', 'DECOY', 100, TRUE, 'Honey resource to detect unauthorized access');
 
 INSERT IGNORE INTO employees (id, name, email, department, role_id, status) VALUES
-('EMP1024', 'John Doe (Synthetic)', 'john.doe@twinshield-bank.internal', 'Retail Banking', 'ROLE_CUST_SERVICE', 'ACTIVE'),
+('EMP1024', 'Malavika', 'malavika@twinshield-bank.internal', 'Retail Banking', 'ROLE_CUST_SERVICE', 'ACTIVE'),
 ('EMP2031', 'Sarah Jenkins (Synthetic)', 'sarah.jenkins@twinshield-bank.internal', 'Branch Operations', 'ROLE_MANAGER', 'ACTIVE');
 
 INSERT IGNORE INTO behavioral_digital_twin_profiles (employee_id, normal_start_hour, normal_end_hour, avg_daily_accesses, avg_session_duration_minutes, known_devices, known_ip_ranges, typical_resources) VALUES

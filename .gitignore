@@ -21,3 +21,8 @@ dist/
 .idea/
 .DS_Store
 *.log
+
+# Duplicate copy artifacts
+*- Copy*
+* - Copy*
+- Copy*

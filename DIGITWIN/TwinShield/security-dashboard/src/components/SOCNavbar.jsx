@@ -9,7 +9,7 @@ export const SOCNavbar = ({ activeTab, setActiveTab }) => {
     {
       category: 'MONITORING',
       items: [
-        { id: 'overview', label: 'GIS Location Map & Overview', icon: Globe },
+        { id: 'overview', label: 'Global Overview', icon: Globe },
         { id: 'feed', label: 'Live Threat Feed', icon: Radio },
         { id: 'employee-risk', label: 'Employee Risk', icon: Users }
       ]

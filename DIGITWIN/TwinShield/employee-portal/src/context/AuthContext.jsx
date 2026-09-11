@@ -5,17 +5,17 @@ const AuthContext = createContext(null);
 export const DEFAULT_PERSONAS = [
   {
     id: 'EMP1024',
-    name: 'John Doe',
-    email: 'john.doe@twinshield-bank.internal',
+    name: 'Malavika',
+    email: 'malavika@twinshield-bank.internal',
     department: 'Retail Banking',
     roleId: 'ROLE_CUST_SERVICE',
     roleName: 'Customer Service Representative',
     permissions: ['customer:read', 'transaction:read'],
-    avatar: '',
+    avatar: '👩‍💼',
     normalStartHour: '09:00',
     normalEndHour: '18:00',
     phone: '+91 98765 10240',
-    location: 'Chennai HQ - Window #04'
+    location: 'Chennai Central HQ - Retail Desk #04'
   },
   {
     id: 'EMP2031',
@@ -25,11 +25,11 @@ export const DEFAULT_PERSONAS = [
     roleId: 'ROLE_MANAGER',
     roleName: 'Branch Manager',
     permissions: ['customer:read', 'transaction:read', 'reports:read', 'vip:read'],
-    avatar: '',
+    avatar: '👔',
     normalStartHour: '08:30',
     normalEndHour: '19:00',
     phone: '+91 98765 20310',
-    location: 'Chennai HQ - Executive Suite'
+    location: 'Guindy Branch - Executive Suite'
   },
   {
     id: 'EMP5099',
@@ -39,11 +39,11 @@ export const DEFAULT_PERSONAS = [
     roleId: 'ROLE_ADMIN',
     roleName: 'System Administrator',
     permissions: ['customer:read', 'transaction:read', 'reports:read', 'vip:read', 'admin:manage'],
-    avatar: '',
+    avatar: '🛡️',
     normalStartHour: '09:00',
     normalEndHour: '18:00',
     phone: '+91 98765 50990',
-    location: 'SOC Core Command Center'
+    location: 'Nungambakkam SOC - Security Terminal'
   }
 ];
 
@@ -132,18 +132,227 @@ export const INITIAL_TRANSACTIONS = [
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser = localStorage.getItem('twinshield_user');
+    let savedUser = sessionStorage.getItem('twinshield_user');
+    if (!savedUser) {
+      // Migrate legacy localStorage if present
+      savedUser = localStorage.getItem('twinshield_user');
+      if (savedUser) {
+        sessionStorage.setItem('twinshield_user', savedUser);
+        try { localStorage.removeItem('twinshield_user'); } catch (e) {}
+      }
+    }
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.id) return parsed;
       } catch (e) {}
     }
-    return DEFAULT_PERSONAS[0];
+    return null; // Require explicit login; do not set Malavika online by default
   });
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => {
+    const savedUser = sessionStorage.getItem('twinshield_user') || localStorage.getItem('twinshield_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.id) {
+          return {
+            sessionId: `SESS-${parsed.id}-ALPHA`,
+            employeeId: parsed.id,
+            status: 'ACTIVE',
+            employeeStatus: 'ACTIVE',
+            riskScore: 0.0,
+            ipAddress: '192.168.1.104',
+            locationCity: 'Chennai Central HQ',
+            deviceFingerprint: 'DEV-FP-Chrome-Win64',
+            loginTime: `Today (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST)`
+          };
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
   const [lastDeniedAction, setLastDeniedAction] = useState(null);
   const [personas, setPersonas] = useState(DEFAULT_PERSONAS);
+  const [sessionActionCount, setSessionActionCount] = useState(1);
+  const [lastApiEndpoint, setLastApiEndpoint] = useState('/api/v1/customer/profile');
+
+  // Real hardware device fingerprinting derived from genuine browser environment
+  const getBrowserFingerprint = () => {
+    try {
+      const nav = typeof window !== 'undefined' ? window.navigator : null;
+      const screen = typeof window !== 'undefined' ? window.screen : null;
+      if (!nav) return 'DEV-FP-Chrome-Win64-8C-4a9f82';
+      
+      const ua = nav.userAgent || '';
+      let browser = 'Chrome';
+      if (ua.includes('Firefox')) browser = 'Firefox';
+      else if (ua.includes('Edg')) browser = 'Edge';
+      else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+
+      const os = ua.includes('Win') ? 'Win64' : (ua.includes('Mac') ? 'macOS' : 'Linux');
+      const cores = nav.hardwareConcurrency || 8;
+      const res = screen ? `${screen.width}x${screen.height}` : '1920x1080';
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+
+      let hash = 0;
+      const str = `${browser}-${os}-${cores}-${res}-${tz}`;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const hex = Math.abs(hash).toString(16).padStart(8, '0');
+      return `DEV-FP-${browser}-${os}-${cores}C-${hex}`;
+    } catch (e) {
+      return 'DEV-FP-Chrome-Win64-8C-4a9f82';
+    }
+  };
+
+  // Coordinates are only held in memory after an explicit browser location grant.
+  const [liveGeo, setLiveGeo] = useState(() => {
+    return {
+      lat: null, lng: null, city: 'Location permission required',
+      region: null, country: null, ip: '127.0.0.1', isp: 'Unknown network',
+      isRealDevice: false, accuracyMeters: null, isPrecise: false,
+      locationSource: 'UNAVAILABLE'
+    };
+  });
+
+  // Automated network & browser location resolution
+  useEffect(() => {
+    let active = true;
+
+    const resolveLocation = async () => {
+      // Purge the legacy IP-coordinate cache; it was never a device location.
+      try { localStorage.removeItem('twinshield_live_geo'); } catch (e) {}
+      // 1. Fetch public IP metadata if available
+      try {
+        const res = await fetch('https://ipwho.is/');
+        if (res.ok) {
+          const ipData = await res.json();
+          if (ipData && ipData.success && active) {
+            setLiveGeo((prev) => {
+              if (prev.locationSource === 'BROWSER_LOCATION' || prev.locationSource === 'MOBILE_GPS' || prev.locationSource === 'MANUAL') {
+                return { ...prev, ip: ipData.ip || prev.ip, isp: ipData.connection?.isp || prev.isp };
+              }
+              const next = {
+                ...prev,
+                lat: null, lng: null,
+                city: `Network location only${ipData.connection?.isp ? ` (${ipData.connection.isp})` : ''}`,
+                region: ipData.region || null, country: ipData.country || null,
+                ip: ipData.ip || '127.0.0.1',
+                isp: ipData.connection?.isp || 'Unknown network',
+                isRealDevice: true,
+                accuracyMeters: null, isPrecise: false,
+                locationSource: 'IP_NETWORK'
+              };
+              return next;
+            });
+          }
+        }
+      } catch (err) {
+        console.log('IP Geolocation notice:', err.message);
+      }
+
+      // 2. Query browser HTML5 Geolocation if permitted by user
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            if (!active) return;
+            const lat = +(pos.coords.latitude.toFixed(6));
+            const lng = +(pos.coords.longitude.toFixed(6));
+            let resolvedCity = 'Chennai';
+
+            try {
+              const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: { 'Accept': 'application/json' }
+              });
+              if (revRes.ok) {
+                const revData = await revRes.json();
+                const locality = revData.address?.suburb || revData.address?.neighbourhood || revData.address?.residential || revData.address?.city_district;
+                if (locality) {
+                  resolvedCity = `${locality}, Chennai`;
+                }
+              }
+            } catch (e) {}
+
+            setLiveGeo((prev) => {
+              const next = {
+                ...prev,
+                lat,
+                lng,
+                city: resolvedCity,
+                accuracyMeters: Math.round(pos.coords.accuracy),
+                isPrecise: true,
+                locationSource: 'BROWSER_LOCATION'
+              };
+              return next;
+            });
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+    };
+
+    resolveLocation();
+
+    // 3. Listen for cross-tab or mobile beacon sync events
+    const handleStorage = (e) => {
+      if (e.key === 'twinshield_mobile_beacon') {
+        try {
+          const parsed = JSON.parse(e.newValue || '{}');
+          if (parsed && parsed.lat != null && parsed.lng != null) {
+            setLiveGeo((prev) => ({ ...prev, ...parsed, isPrecise: true, locationSource: 'MOBILE_GPS' }));
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => { 
+      active = false; 
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  // Update location manually (presets, GPS refresh, mobile beacon, or anomaly simulation)
+  const updateLocationManually = (geoUpdate) => {
+    setLiveGeo((prev) => {
+      const next = {
+        ...prev,
+        ...geoUpdate,
+        isPrecise: true,
+        locationSource: geoUpdate.locationSource || 'MANUAL'
+      };
+
+      // Immediately send heartbeat to backend to sync SOC map only if logged in
+      if (currentUser?.id && session) {
+        const targetSessionId = session.sessionId || `SESS-${currentUser.id}-ALPHA`;
+        fetch('http://localhost:8080/api/sessions/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: targetSessionId,
+            employeeId: currentUser.id,
+            employeeName: currentUser.name,
+            latitude: next.lat,
+            longitude: next.lng,
+            locationSource: next.locationSource,
+            city: next.city,
+            ipAddress: next.ip,
+            deviceFingerprint: getBrowserFingerprint(),
+            loginTime: session?.loginTime || `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST`,
+            lastEndpoint: lastApiEndpoint,
+            accessesCount: sessionActionCount,
+            status: session?.status || 'ACTIVE',
+            riskScore: session?.riskScore || 0.0
+          })
+        }).catch(() => {});
+      }
+
+      return next;
+    });
+  };
 
   // Persistent shared customers state across all browser tabs & sessions
   const [customers, setCustomers] = useState(() => {
@@ -178,7 +387,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('twinshield_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
-  // Real-time tab-to-tab sync listener
+  // Real-time tab-to-tab sync listener for shared banking data (customers & transactions)
+  // Note: twinshield_user is NOT synced here so each tab can maintain its own independent employee account
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'twinshield_customers' && e.newValue) {
@@ -186,9 +396,6 @@ export const AuthProvider = ({ children }) => {
       }
       if (e.key === 'twinshield_transactions' && e.newValue) {
         try { setTransactions(JSON.parse(e.newValue)); } catch (err) {}
-      }
-      if (e.key === 'twinshield_user' && e.newValue) {
-        try { setCurrentUser(JSON.parse(e.newValue)); } catch (err) {}
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -214,10 +421,11 @@ export const AuthProvider = ({ children }) => {
                 department: e.department || 'Retail Banking',
                 roleId: roleId,
                 roleName: roleName,
-                permissions: roleId === 'ROLE_ADMIN' ? ['customer:read', 'transaction:read', 'reports:read', 'vip:read', 'admin:manage'] : roleId === 'ROLE_MANAGER' ? ['customer:read', 'transaction:read', 'reports:read', 'vip:read'] : ['customer:read', 'transaction:read'],
-                avatar: roleId === 'ROLE_ADMIN' ? '👨‍💻' : (eName.toLowerCase().includes('sarah') || eName.toLowerCase().includes('priya') || eName.toLowerCase().includes('nishanthi') || eName.toLowerCase().includes('malavika')) ? '👩‍💼' : '👨‍💼',
+                permissions: roleId === 'ROLE_ADMIN' ? ['customer:read', 'customer:write', 'transaction:read', 'transaction:write', 'reports:read', 'vip:read', 'admin:manage'] : roleId === 'ROLE_MANAGER' ? ['customer:read', 'transaction:read', 'reports:read', 'vip:read'] : ['customer:read', 'transaction:read'],
+                avatar: roleId === 'ROLE_ADMIN' ? '🛡️' : (eName.toLowerCase().includes('sarah') || eName.toLowerCase().includes('priya') || eName.toLowerCase().includes('nishanthi') || eName.toLowerCase().includes('malavika')) ? '👩‍💼' : '👨‍💼',
                 normalStartHour: '09:00',
-                normalEndHour: '18:00'
+                normalEndHour: '18:00',
+                location: e.department ? `${e.department} Branch` : 'Chennai HQ'
               };
             });
             setPersonas(mapped);
@@ -241,16 +449,55 @@ export const AuthProvider = ({ children }) => {
       status: 'ACTIVE',
       employeeStatus: 'ACTIVE',
       riskScore: 0.0,
-      ipAddress: '192.168.1.104',
-      locationCity: 'Chennai (HQ Branch)',
-      deviceFingerprint: `DEV-FIN-${empId}-WIN11`,
-      loginTime: 'Today (18:00 IST)'
+      ipAddress: liveGeo.ip || '192.168.1.104',
+      locationCity: liveGeo.city || 'Chennai Central HQ',
+      deviceFingerprint: getBrowserFingerprint(),
+      loginTime: `Today (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST)`
     };
   };
 
   const initSession = (user) => {
     setSession(createDefaultSession(user));
   };
+
+  // Live session heartbeat to backend: registers real online status ONLY when user is logged in
+  useEffect(() => {
+    if (!currentUser || !currentUser.id || !session) return;
+    const empId = currentUser.id;
+    const targetSessionId = session.sessionId || `SESS-${empId}-ALPHA`;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch('http://localhost:8080/api/sessions/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: targetSessionId,
+            employeeId: empId,
+            employeeName: currentUser.name,
+            latitude: liveGeo.lat,
+            longitude: liveGeo.lng,
+            locationSource: liveGeo.locationSource,
+            city: liveGeo.city,
+            ipAddress: liveGeo.ip,
+            deviceFingerprint: getBrowserFingerprint(),
+            loginTime: session?.loginTime || `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST`,
+            lastEndpoint: lastApiEndpoint,
+            accessesCount: sessionActionCount,
+            status: session?.status || 'ACTIVE',
+            riskScore: session?.riskScore || 0.0
+          })
+        });
+      } catch (err) {}
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [currentUser, liveGeo, session?.status, session?.riskScore, session?.sessionId, lastApiEndpoint, sessionActionCount]);
 
   // Poll backend isolation status every 500ms and PRESERVE rich session fields
   useEffect(() => {
@@ -281,10 +528,10 @@ export const AuthProvider = ({ children }) => {
                 status: backendStatus,
                 employeeStatus: backendEmpStatus,
                 riskScore: backendRiskScore,
-                ipAddress: baseSess.ipAddress || '192.168.1.104',
-                locationCity: baseSess.locationCity || 'Chennai (HQ Branch)',
-                deviceFingerprint: baseSess.deviceFingerprint || `DEV-FIN-${empId}-WIN11`,
-                loginTime: baseSess.loginTime || 'Today (18:00 IST)'
+                ipAddress: baseSess.ipAddress || liveGeo.ip || '192.168.1.104',
+                locationCity: baseSess.locationCity || liveGeo.city || 'Chennai Central HQ',
+                deviceFingerprint: baseSess.deviceFingerprint || getBrowserFingerprint(),
+                loginTime: baseSess.loginTime || `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST`
               };
             }
             return prev;
@@ -298,7 +545,7 @@ export const AuthProvider = ({ children }) => {
     pollIsolationStatus();
     const interval = setInterval(pollIsolationStatus, 500);
     return () => clearInterval(interval);
-  }, [currentUser, session?.sessionId]);
+  }, [currentUser, session?.sessionId, liveGeo]);
 
   const loginUser = (userOrId) => {
     let userObj;
@@ -316,21 +563,29 @@ export const AuthProvider = ({ children }) => {
       userObj = userOrId;
     }
     setCurrentUser(userObj);
-    localStorage.setItem('twinshield_user', JSON.stringify(userObj));
+    sessionStorage.setItem('twinshield_user', JSON.stringify(userObj));
+    try { localStorage.removeItem('twinshield_user'); } catch (e) {}
     initSession(userObj);
   };
 
   const logoutUser = () => {
+    if (currentUser?.id) {
+      const sId = session?.sessionId || `SESS-${currentUser.id}-ALPHA`;
+      fetch(`http://localhost:8080/api/sessions/logout?employeeId=${currentUser.id}&sessionId=${sId}`, {
+        method: 'POST'
+      }).catch(() => {});
+    }
     setCurrentUser(null);
     setSession(null);
-    localStorage.removeItem('twinshield_user');
+    sessionStorage.removeItem('twinshield_user');
+    try { localStorage.removeItem('twinshield_user'); } catch (e) {}
   };
 
   const updateUserProfile = async (updatedFields) => {
     if (!currentUser) return;
     const mergedUser = { ...currentUser, ...updatedFields };
     setCurrentUser(mergedUser);
-    localStorage.setItem('twinshield_user', JSON.stringify(mergedUser));
+    sessionStorage.setItem('twinshield_user', JSON.stringify(mergedUser));
 
     setPersonas((prev) =>
       prev.map((p) => (p.id === mergedUser.id ? { ...p, ...updatedFields } : p))
@@ -351,6 +606,28 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('Backend profile sync warning:', err.message);
     }
+
+    // Immediately send live heartbeat with new name to update SOC dashboard instantly
+    try {
+      const targetSessionId = session?.sessionId || `SESS-${mergedUser.id}-ALPHA`;
+      await fetch('http://localhost:8080/api/sessions/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: targetSessionId,
+          employeeId: mergedUser.id,
+          employeeName: mergedUser.name,
+          latitude: liveGeo.lat,
+          longitude: liveGeo.lng,
+          locationSource: liveGeo.locationSource,
+          city: liveGeo.city,
+          ipAddress: liveGeo.ip,
+          deviceFingerprint: getBrowserFingerprint(),
+          status: session?.status || 'ACTIVE',
+          riskScore: session?.riskScore || 0.0
+        })
+      });
+    } catch (e) {}
   };
 
   const deletePersona = async (empId) => {
@@ -455,46 +732,21 @@ export const AuthProvider = ({ children }) => {
       return updated;
     });
 
-    const txnId = `TXN-${Math.floor(100000 + Math.random() * 899999)}`;
-    const targetCust = customers.find((c) => c.id === customerId) || { name: 'Bank Customer' };
-
-    const newTxn = {
-      id: txnId,
-      customerName: targetCust.name,
-      customerId: customerId,
-      type: 'CARD_ISSUANCE',
-      amount: 0.00,
-      date: `Today ${timeStr}`,
-      status: 'Completed',
-      channel: `EMV Debit Card (${cardType} - ${cardNum})`
-    };
-
-    setTransactions((prev) => {
-      const updated = [newTxn, ...prev];
-      localStorage.setItem('twinshield_transactions', JSON.stringify(updated));
-      return updated;
-    });
-    recordActivityToBackend('/api/v1/teller/card-issuance', 'CARD_ISSUANCE', 1, false);
-    return { txnId, cardNumber: cardNum };
+    recordActivityToBackend('/api/v1/customer/issue-card', 'DEBIT_CARD_ISSUANCE', 1, false);
+    return { cardNum };
   };
 
-  const signOffWireTransfer = (wireId, customerId, amountNum) => {
+  const signOffWireTransfer = (customerId, amountNum, wireId) => {
     const txnId = `TXN-${Math.floor(100000 + Math.random() * 899999)}`;
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    setCustomers((prev) => {
-      const updated = prev.map((c) => (c.id === customerId ? { ...c, balance: Math.max(0, c.balance - amountNum) } : c));
-      localStorage.setItem('twinshield_customers', JSON.stringify(updated));
-      return updated;
-    });
-
-    const targetCust = customers.find((c) => c.id === customerId) || { name: 'Corporate Account' };
+    const targetCust = customers.find((c) => c.id === customerId) || { name: 'Corporate Client' };
 
     const newTxn = {
       id: txnId,
       customerName: targetCust.name,
       customerId: customerId,
-      type: 'WIRE_TRANSFER_APPROVAL',
+      type: 'WIRE_TRANSFER',
       amount: amountNum,
       date: `Today ${timeStr}`,
       status: 'Signed Off',
@@ -516,10 +768,52 @@ export const AuthProvider = ({ children }) => {
     return currentUser.permissions ? currentUser.permissions.includes(permission) : false;
   };
 
-  const recordActivityToBackend = async (resourceId, actionType, recordsAccessed = 1, isDecoy = false) => {
+  const checkResourcePermission = (resourceId) => {
+    if (!currentUser) return false;
+    if (currentUser.roleId === 'ROLE_ADMIN') return true;
+    const perms = currentUser.permissions || [];
+    const r = (resourceId || '').toLowerCase();
+    if (r.includes('decoy') || r.includes('honey')) return false;
+    if (r.includes('vip')) return perms.includes('vip:read');
+    if (r.includes('reports') || r.includes('manager')) return perms.includes('reports:read');
+    if (r.includes('admin')) return perms.includes('admin:manage');
+    if (r.includes('transaction')) return perms.includes('transaction:read');
+    if (r.includes('customer') || r.includes('teller')) return perms.includes('customer:read');
+    return true;
+  };
+
+  const recordActivityToBackend = async (resourceId, actionType, recordsAccessed = 1, isDecoy = false, forceViolation = false) => {
     if (!currentUser) return;
-    const isDenied = !hasPermission(resourceId);
+    const isDenied = forceViolation || actionType.includes('VIOLATION') || !checkResourcePermission(resourceId);
     const targetSessionId = session?.sessionId || `SESS-${currentUser.id}-ALPHA`;
+
+    const nextCount = sessionActionCount + (recordsAccessed || 1);
+    setSessionActionCount(nextCount);
+    setLastApiEndpoint(resourceId);
+
+    // Immediately dispatch heartbeat update so SOC updates instantly
+    try {
+      fetch('http://localhost:8080/api/sessions/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: targetSessionId,
+          employeeId: currentUser.id,
+          employeeName: currentUser.name,
+          latitude: liveGeo.lat,
+          longitude: liveGeo.lng,
+          locationSource: liveGeo.locationSource,
+          city: liveGeo.city,
+          ipAddress: liveGeo.ip,
+          deviceFingerprint: getBrowserFingerprint(),
+          loginTime: session?.loginTime || `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST`,
+          lastEndpoint: resourceId,
+          accessesCount: nextCount,
+          status: session?.status || 'ACTIVE',
+          riskScore: session?.riskScore || 0.0
+        })
+      }).catch(() => {});
+    } catch (e) {}
 
     try {
       const payload = {
@@ -529,7 +823,10 @@ export const AuthProvider = ({ children }) => {
         actionType: actionType,
         recordsAccessed: recordsAccessed,
         dataVolumeBytes: recordsAccessed * 3000,
-        isRbacViolation: isDenied
+        isRbacViolation: isDenied,
+        isDecoy: isDecoy,
+        ipAddress: liveGeo.ip || '192.168.1.104',
+        locationCity: liveGeo.city || 'Chennai'
       };
 
       await fetch('http://localhost:8080/api/activities', {
@@ -539,7 +836,21 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (isDecoy) {
-        setSession((prev) => prev ? { ...prev, status: 'ISOLATED' } : { sessionId: targetSessionId, employeeId: currentUser.id, status: 'ISOLATED', employeeStatus: 'ACTIVE' });
+        setSession((prev) => prev ? { ...prev, status: 'ISOLATED', riskScore: 100.0 } : { sessionId: targetSessionId, employeeId: currentUser.id, status: 'ISOLATED', employeeStatus: 'ACTIVE', riskScore: 100.0 });
+      } else {
+        // Immediately fetch updated isolation and risk status from backend
+        try {
+          const statusRes = await fetch(`http://localhost:8080/api/isolation/status/${targetSessionId}`);
+          if (statusRes.ok) {
+            const data = await statusRes.json();
+            setSession((prev) => ({
+              ...(prev || createDefaultSession(currentUser)),
+              status: data.status || 'ACTIVE',
+              employeeStatus: data.employeeStatus || 'ACTIVE',
+              riskScore: typeof data.riskScore === 'number' ? data.riskScore : (prev?.riskScore || 0.0)
+            }));
+          }
+        } catch (statusErr) {}
       }
     } catch (err) {
       console.warn('Backend activity post warning:', err.message);
@@ -549,17 +860,17 @@ export const AuthProvider = ({ children }) => {
   const verifyAndCompleteMfa = async (code) => {
     const targetSessionId = session?.sessionId || `SESS-${currentUser?.id}-ALPHA`;
     try {
-      const res = await fetch(`http://localhost:8080/api/isolation/restore/${targetSessionId}?notes=MFA_PASSED_BY_EMPLOYEE`, {
+      const res = await fetch(`http://localhost:8080/api/isolation/restore?sessionId=${targetSessionId}&actorId=EMPLOYEE_MFA`, {
         method: 'POST'
       });
       if (res.ok) {
-        setSession((prev) => prev ? { ...prev, status: 'ACTIVE' } : null);
+        setSession((prev) => prev ? { ...prev, status: 'ACTIVE', riskScore: 0.0 } : null);
         return true;
       }
     } catch (err) {
       console.warn('Restore session error:', err.message);
     }
-    setSession((prev) => prev ? { ...prev, status: 'ACTIVE' } : null);
+    setSession((prev) => prev ? { ...prev, status: 'ACTIVE', riskScore: 0.0 } : null);
     return true;
   };
 
@@ -570,6 +881,7 @@ export const AuthProvider = ({ children }) => {
       personas,
       customers,
       transactions,
+      liveGeo,
       loginUser,
       logoutUser,
       updateUserProfile,
@@ -582,7 +894,12 @@ export const AuthProvider = ({ children }) => {
       lastDeniedAction,
       setLastDeniedAction,
       recordActivityToBackend,
-      verifyAndCompleteMfa
+      verifyAndCompleteMfa,
+      getBrowserFingerprint,
+      sessionActionCount,
+      lastApiEndpoint,
+      updateLocationManually,
+      setPreciseLocation: updateLocationManually
     }}>
       {children}
     </AuthContext.Provider>
@@ -597,7 +914,10 @@ export const useAuth = () => {
     personas: [],
     customers: [],
     transactions: [],
+    liveGeo: null,
     updateUserProfile: () => {},
-    hasPermission: () => false
+    hasPermission: () => false,
+    updateLocationManually: () => {},
+    setPreciseLocation: () => {}
   };
 };

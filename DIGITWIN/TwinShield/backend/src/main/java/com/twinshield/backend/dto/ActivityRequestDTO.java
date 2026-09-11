@@ -15,6 +15,7 @@ public class ActivityRequestDTO {
     private String deviceFingerprint;
     private String locationCity;
     private Boolean isRbacViolation;
+    private Boolean isDecoy;
 
     public ActivityRequestDTO() {}
 
@@ -59,4 +60,7 @@ public class ActivityRequestDTO {
 
     public Boolean getIsRbacViolation() { return isRbacViolation; }
     public void setIsRbacViolation(Boolean isRbacViolation) { this.isRbacViolation = isRbacViolation; }
+
+    public Boolean getIsDecoy() { return isDecoy; }
+    public void setIsDecoy(Boolean isDecoy) { this.isDecoy = isDecoy; }
 }

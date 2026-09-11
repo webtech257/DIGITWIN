@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSOC } from '../context/SOCContext';
 import { Lock, RefreshCw, Key, ShieldAlert, UserX, CheckCircle, Zap, ShieldCheck } from 'lucide-react';
 
@@ -8,17 +8,8 @@ export const IsolationManagementView = () => {
     handleRestoreSession,
     handleRequireMFA,
     handleExtendIsolation,
-    handleDisableAccount,
-    triggerSyntheticAttackDemo
+    handleDisableAccount
   } = useSOC();
-
-  const [toastMsg, setToastMsg] = useState('');
-
-  const triggerAttackDemo = async () => {
-    setToastMsg('⚡ Simulating decoy payload exfiltration & triggering automated 98.2% risk isolation...');
-    await triggerSyntheticAttackDemo();
-    setTimeout(() => setToastMsg(''), 5000);
-  };
 
   return (
     <div className="soc-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
@@ -42,33 +33,7 @@ export const IsolationManagementView = () => {
           </div>
         </div>
 
-        {/* Demo Attack Trigger */}
-        <button
-          onClick={triggerAttackDemo}
-          style={{
-            padding: '0.55rem 1.1rem',
-            background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
-            color: '#FFFFFF',
-            fontWeight: 700,
-            fontSize: '0.8rem',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}
-        >
-          <Zap style={{ width: '14px', height: '14px' }} /> Simulate High-Risk Quarantine Attack
-        </button>
       </div>
-
-      {toastMsg && (
-        <div style={{ padding: '0.75rem 1rem', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-          {toastMsg}
-        </div>
-      )}
 
       {/* Main Quarantined Sessions Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

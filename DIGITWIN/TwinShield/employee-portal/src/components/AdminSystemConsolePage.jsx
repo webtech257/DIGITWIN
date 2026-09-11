@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Server, Key, Cpu, RefreshCw, Terminal, UserPlus, Trash2, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
-import { EmployeeProvisioningModal } from './EmployeeProvisioningModal';
+import { Server, Key, Cpu, RefreshCw, Terminal, Lock, ShieldCheck, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 
 export const AdminSystemConsolePage = () => {
   const { personas, recordActivityToBackend } = useAuth();
   const [hsmKeyStatus, setHsmKeyStatus] = useState('ACTIVE (AES-256-GCM - Key ID: 0x99A81B)');
   const [keyRotatedAt, setKeyRotatedAt] = useState('2026-08-29 09:00 IST');
   const [logs, setLogs] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
   const handleRotateHsmKey = () => {
@@ -35,100 +33,41 @@ export const AdminSystemConsolePage = () => {
     ]);
   };
 
-  const handleProvisionEmployee = async (newEmpData) => {
-    try {
-      const payload = {
-        id: newEmpData.id,
-        name: newEmpData.name,
-        email: newEmpData.email,
-        department: newEmpData.department,
-        status: newEmpData.status,
-        roleId: newEmpData.roleId
-      };
-
-      const res = await fetch('http://localhost:8080/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setStatusMessage(`✅ Employee ${newEmpData.name} (${newEmpData.id}) provisioned successfully!`);
-        recordActivityToBackend('/api/v1/admin/provision-employee', 'PROVISION_EMPLOYEE', 1, false);
-        setLogs((prev) => [
-          `👤 [ADMIN PROVISIONING] Successfully created new bank employee ${newEmpData.name} (${newEmpData.id})`,
-          ...prev
-        ]);
-      } else {
-        setStatusMessage(`⚠️ Local provisioning completed for ${newEmpData.name} (${newEmpData.id})`);
-      }
-    } catch (err) {
-      console.warn('Backend provision error:', err.message);
-      setStatusMessage(`✅ Employee ${newEmpData.name} (${newEmpData.id}) added to workspace!`);
-    }
-
-    setTimeout(() => setStatusMessage(''), 5000);
-  };
-
-  const handleDeleteEmployee = async (empId, empName) => {
-    if (!window.confirm(`Are you sure you want to delete employee ${empName} (${empId})?`)) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`http://localhost:8080/api/employees/${empId}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        setStatusMessage(`🗑️ Employee ${empName} (${empId}) deleted successfully.`);
-      } else {
-        setStatusMessage(`🗑️ Employee ${empName} (${empId}) removed from active roster.`);
-      }
-
-      recordActivityToBackend('/api/v1/admin/delete-employee', 'DELETE_EMPLOYEE', 1, false);
-      setLogs((prev) => [
-        `🗑️ [ADMIN DELETION] Deleted employee ${empName} (${empId}) from system registry at ${new Date().toLocaleTimeString()}`,
-        ...prev
-      ]);
-    } catch (err) {
-      console.warn('Backend delete error:', err.message);
-      setStatusMessage(`🗑️ Employee ${empName} (${empId}) deleted.`);
-    }
-
-    setTimeout(() => setStatusMessage(''), 5000);
-  };
-
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0F172A' }}>IT Security & Admin Staff Management Console</h1>
-          <p style={{ fontSize: '0.875rem', color: '#64748B' }}>Provision new bank employees, manage RBAC role assignments, and perform HSM security maintenance.</p>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>IT System & HSM Security Administration</h1>
+          <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '0.25rem', marginBottom: 0 }}>Manage cryptographic HSM hardware modules, verify cluster nodes, and inspect staff security posture.</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={() => setIsModalOpen(true)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <a
+            href="http://localhost:5174"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               padding: '0.65rem 1.25rem',
-              background: 'linear-gradient(135deg, #10B981, #059669)',
+              background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
               color: '#FFFFFF',
               fontWeight: 700,
               fontSize: '0.88rem',
               borderRadius: '8px',
               border: 'none',
+              textDecoration: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
             }}
           >
-            <UserPlus style={{ width: '18px', height: '18px' }} /> Provision New Employee
-          </button>
+            <ShieldCheck style={{ width: '18px', height: '18px' }} />
+            Provision Staff in SOC (Port 5174)
+            <ExternalLink style={{ width: '14px', height: '14px' }} />
+          </a>
         </div>
       </div>
 
@@ -217,24 +156,20 @@ export const AdminSystemConsolePage = () => {
                   </span>
                 </td>
                 <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                  <button
-                    onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                    style={{
-                      padding: '0.4rem 0.75rem',
-                      background: '#FEF2F2',
-                      color: '#DC2626',
-                      border: '1px solid #FCA5A5',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <Trash2 style={{ width: '14px', height: '14px' }} /> Delete Employee
-                  </button>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#64748B',
+                    background: '#F1F5F9',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #E2E8F0',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}>
+                    <Lock style={{ width: '12px', height: '12px' }} /> Managed by SOC
+                  </span>
                 </td>
               </tr>
             ))}
@@ -308,13 +243,6 @@ export const AdminSystemConsolePage = () => {
           </div>
         </div>
       )}
-
-      {/* Provisioning Glassmorphism Modal Box */}
-      <EmployeeProvisioningModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleProvisionEmployee}
-      />
     </div>
   );
 };

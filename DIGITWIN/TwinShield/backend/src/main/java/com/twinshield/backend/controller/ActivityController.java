@@ -20,6 +20,11 @@ public class ActivityController {
         this.activityService = activityService;
     }
 
+    @GetMapping
+    public ResponseEntity<java.util.List<EmployeeActivity>> getAllActivities() {
+        return ResponseEntity.ok(activityService.getAllActivities());
+    }
+
     @PostMapping
     public ResponseEntity<EmployeeActivity> logActivity(@RequestBody ActivityRequestDTO activityRequest) {
         EmployeeActivity loggedActivity = activityService.logActivity(activityRequest);

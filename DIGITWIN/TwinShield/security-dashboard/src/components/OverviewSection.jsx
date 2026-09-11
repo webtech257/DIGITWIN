@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSOC } from '../context/SOCContext';
 import { Users, Monitor, AlertTriangle, ShieldAlert, Lock } from 'lucide-react';
-import { EmployeeLocationMap } from './EmployeeLocationMap';
 
 export const OverviewSection = () => {
   const { stats } = useSOC();
@@ -104,9 +103,6 @@ export const OverviewSection = () => {
           );
         })}
       </div>
-
-      {/* Main Interactive Live Employee GIS Location Map */}
-      <EmployeeLocationMap />
     </div>
   );
 };

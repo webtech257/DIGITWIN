@@ -72,7 +72,7 @@ export const DashboardPage = ({ setActiveTab, triggerDeniedAction }) => {
           )}
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px' }}>
-              Welcome back, {currentUser?.name || 'John Doe'}
+              Welcome back, {currentUser?.name || 'Malavika'}
             </h1>
             <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.15rem' }}>
               {currentUser?.department || 'Retail Banking'} • Role: <strong style={{ color: '#059669' }}>{currentUser?.roleName || 'Customer Service Representative'}</strong>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LoginPage } from './components/LoginPage';
@@ -16,13 +16,40 @@ import { TellerOperationsPage } from './components/TellerOperationsPage';
 import { ManagerOperationsPage } from './components/ManagerOperationsPage';
 import { AdminSystemConsolePage } from './components/AdminSystemConsolePage';
 import { ComplianceAuditPage } from './components/ComplianceAuditPage';
-import { EmployeeManagementPage } from './components/EmployeeManagementPage';
+
+import { MobileBeaconTransmitterScreen } from './components/MobileBeaconTransmitterScreen';
 
 const MainApp = () => {
-  const { currentUser, session, verifyAndCompleteMfa } = useAuth();
+  const { currentUser, session, verifyAndCompleteMfa, recordActivityToBackend } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [deniedDetails, setDeniedDetails] = useState(null);
+
+  // Real-time behavioral telemetry: route navigation and endpoint access tracking
+  useEffect(() => {
+    if (!currentUser) return;
+    const tabEndpoints = {
+      'dashboard': '/api/v1/customer/profile',
+      'customers': '/api/v1/customers/search',
+      'customer-details': '/api/v1/customers/' + (selectedCustomer?.id || 'profile'),
+      'transactions': '/api/v1/transactions/search',
+      'teller-desk': '/api/v1/teller/workstation',
+      'manager-desk': '/api/v1/manager/summary',
+      'admin-console': '/api/v1/admin/system',
+      'compliance-audit': '/api/v1/compliance/sar-filings',
+      'profile': '/api/v1/employee/profile',
+      'session': '/api/v1/session/telemetry'
+    };
+    const endpoint = tabEndpoints[activeTab] || `/api/v1/${activeTab}`;
+    if (recordActivityToBackend) {
+      recordActivityToBackend(endpoint, 'NAVIGATE', 1, false);
+    }
+  }, [activeTab, selectedCustomer?.id, currentUser?.id]);
+
+  // Check if opened as mobile GPS beacon scanner
+  if (typeof window !== 'undefined' && window.location.search.includes('mobile_gps_beacon')) {
+    return <MobileBeaconTransmitterScreen />;
+  }
 
   if (!currentUser) {
     return <LoginPage onLoginSuccess={() => setActiveTab('dashboard')} />;
@@ -57,9 +84,6 @@ const MainApp = () => {
       <main style={{ paddingBottom: '3rem' }}>
         {activeTab === 'dashboard' && (
           <DashboardPage setActiveTab={setActiveTab} triggerDeniedAction={triggerDeniedAction} />
-        )}
-        {activeTab === 'employee-admin' && (
-          <EmployeeManagementPage />
         )}
         {activeTab === 'teller-desk' && (
           <TellerOperationsPage triggerDeniedAction={triggerDeniedAction} />

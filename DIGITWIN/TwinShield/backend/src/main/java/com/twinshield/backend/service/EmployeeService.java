@@ -72,10 +72,34 @@ public class EmployeeService {
 
         String roleId = dto.getRoleId() != null ? dto.getRoleId() : "ROLE_CUST_SERVICE";
         Role role = roleRepository.findById(roleId)
-                .orElseGet(() -> roleRepository.findById("ROLE_CUST_SERVICE").orElse(null));
+                .orElseGet(() -> roleRepository.findById("ROLE_CUST_SERVICE")
+                .orElseGet(() -> {
+                    List<Role> all = roleRepository.findAll();
+                    return all.isEmpty() ? null : all.get(0);
+                }));
+        if (role == null) {
+            role = new Role("ROLE_CUST_SERVICE", "Customer Service Representative", "Default customer service staff");
+            role = roleRepository.save(role);
+        }
         employee.setRole(role);
 
-        return employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+
+        if (!profileRepository.existsById(empId)) {
+            com.twinshield.backend.entity.BehavioralDigitalTwinProfile profile = new com.twinshield.backend.entity.BehavioralDigitalTwinProfile();
+            profile.setEmployeeId(empId);
+            profile.setNormalStartHour(9);
+            profile.setNormalEndHour(18);
+            profile.setAvgDailyAccesses(25);
+            profile.setAvgSessionDurationMinutes(480);
+            profile.setNormalLocation("Chennai");
+            profile.setKnownDevices("[\"BANK-PC-" + empId + "\"]");
+            profile.setKnownIpRanges("[\"192.168.1.0/24\"]");
+            profile.setTypicalResources("[\"/api/v1/customer/profile\", \"/api/v1/transactions/search\"]");
+            profileRepository.save(profile);
+        }
+
+        return saved;
     }
 
     @Transactional
