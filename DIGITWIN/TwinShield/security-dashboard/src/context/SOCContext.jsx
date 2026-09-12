@@ -52,14 +52,14 @@ export const SOCProvider = ({ children }) => {
       device: 'BANK-PC-1024',
       location: 'Chennai Central HQ - Retail Desk #04',
       geo: {
-        lat: null,
-        lng: null,
-        city: 'Offline / Standby',
+        lat: 13.0827,
+        lng: 80.2707,
+        city: 'Chennai Central HQ - Retail Desk #04',
         ipAddress: '192.168.1.104',
         isLiveDevice: false,
-        geofenceStatus: 'OFFLINE',
+        geofenceStatus: 'AUTHORIZED_PERIMETER',
         isImpossibleTravel: false,
-        lastUpdated: 'Not Logged In'
+        lastUpdated: 'Designated Campus'
       },
       expectedBehavior: {
         workingHours: '09:00 - 18:00 IST',
@@ -90,14 +90,14 @@ export const SOCProvider = ({ children }) => {
       device: 'BANK-PC-2031',
       location: 'Guindy Branch - Executive Suite',
       geo: {
-        lat: null,
-        lng: null,
-        city: 'Offline / Standby',
+        lat: 12.9815,
+        lng: 80.2180,
+        city: 'Guindy Branch - Executive Suite',
         ipAddress: '192.168.1.145',
         isLiveDevice: false,
-        geofenceStatus: 'OFFLINE',
+        geofenceStatus: 'AUTHORIZED_PERIMETER',
         isImpossibleTravel: false,
-        lastUpdated: 'Not Logged In'
+        lastUpdated: 'Designated Campus'
       },
       expectedBehavior: {
         workingHours: '08:30 - 19:00 IST',
@@ -128,14 +128,14 @@ export const SOCProvider = ({ children }) => {
       device: 'ADMIN-PC-5099',
       location: 'Nungambakkam SOC - Security Terminal',
       geo: {
-        lat: null,
-        lng: null,
-        city: 'Offline / Standby',
+        lat: 13.0524,
+        lng: 80.2508,
+        city: 'Nungambakkam SOC - Security Terminal',
         ipAddress: '10.0.4.88',
         isLiveDevice: false,
-        geofenceStatus: 'OFFLINE',
+        geofenceStatus: 'AUTHORIZED_PERIMETER',
         isImpossibleTravel: false,
-        lastUpdated: 'Not Logged In'
+        lastUpdated: 'Designated Campus'
       },
       expectedBehavior: {
         workingHours: '09:00 - 18:00 IST',
@@ -349,33 +349,40 @@ export const SOCProvider = ({ children }) => {
 
             const resolvedName = activeSession?.employeeName || emp.name || emp.id;
 
+            const defaultCampusLat = emp.id === 'EMP2031' ? 12.9815 : emp.id === 'EMP5099' ? 13.0524 : 13.0827;
+            const defaultCampusLng = emp.id === 'EMP2031' ? 80.2180 : emp.id === 'EMP5099' ? 80.2508 : 80.2707;
+            const defaultCampusCity = emp.id === 'EMP2031' ? 'Guindy Operations Hub' : emp.id === 'EMP5099' ? 'Nungambakkam SOC' : 'Chennai Central HQ';
+
             const defaultCampusGeo = {
-              lat: null,
-              lng: null,
-              city: 'Offline / Standby',
-              ipAddress: '192.168.1.104',
-              isLiveDevice: false,
-              geofenceStatus: 'OFFLINE',
+              lat: defaultCampusLat,
+              lng: defaultCampusLng,
+              city: isOnline ? defaultCampusCity : `${defaultCampusCity} (Standby)`,
+              ipAddress: emp.id === 'EMP5099' ? '10.0.4.88' : '192.168.1.104',
+              isLiveDevice: isOnline,
+              geofenceStatus: isOnline ? 'AUTHORIZED_PERIMETER' : 'AUTHORIZED_PERIMETER',
               isImpossibleTravel: false,
-              lastUpdated: 'Not Logged In'
+              lastUpdated: isOnline ? 'Designated Branch Campus' : 'Designated Campus'
             };
 
-            const trustedSources = ['BROWSER_LOCATION', 'MOBILE_GPS', 'MANUAL'];
+            const trustedSources = ['BROWSER_LOCATION', 'MOBILE_GPS', 'MANUAL', 'DESIGNATED_CAMPUS', 'IP_NETWORK'];
             const hasPreciseLocation = Boolean(
-              activeSession && trustedSources.includes(activeSession.locationSource) &&
-              typeof activeSession.latitude === 'number' && typeof activeSession.longitude === 'number'
+              activeSession &&
+              typeof activeSession.latitude === 'number' &&
+              typeof activeSession.longitude === 'number' &&
+              !isNaN(activeSession.latitude) &&
+              !isNaN(activeSession.longitude)
             );
-            const liveLatVal = hasPreciseLocation ? activeSession.latitude : null;
-            const liveLngVal = hasPreciseLocation ? activeSession.longitude : null;
-            const liveCityName = activeSession?.city || (isOnline ? 'Location not shared' : 'Offline / Standby');
+            const liveLatVal = hasPreciseLocation ? activeSession.latitude : defaultCampusLat;
+            const liveLngVal = hasPreciseLocation ? activeSession.longitude : defaultCampusLng;
+            const liveCityName = activeSession?.city || defaultCampusCity;
 
-            // Compute impossible travel divergence from baseline campus (Chennai Central HQ)
-            const baselineLat = 13.0827;
-            const baselineLng = 80.2707;
-            const isImpossibleTravel = hasPreciseLocation && (Math.abs(liveLatVal - baselineLat) > 3.0 || Math.abs(liveLngVal - baselineLng) > 3.0);
+            // Compute impossible travel divergence from baseline campus
+            const baselineLat = defaultCampusLat;
+            const baselineLng = defaultCampusLng;
+            const isImpossibleTravel = (Math.abs(liveLatVal - baselineLat) > 3.0 || Math.abs(liveLngVal - baselineLng) > 3.0);
 
             let liveGeo = defaultCampusGeo;
-            let locationStr = 'Offline (Session Not Started)';
+            let locationStr = `${defaultCampusCity} (Offline)`;
             let onlineSt = isQuarantined ? 'OFFLINE_QUARANTINED' : isOnline ? 'ONLINE_ACTIVE' : 'OFFLINE';
 
             if (isOnline && activeSession) {
@@ -391,9 +398,7 @@ export const SOCProvider = ({ children }) => {
                 isImpossibleTravel: isImpossibleTravel,
                 lastUpdated: `Live (${activeSession.secondsAgo || 0}s ago)`
               };
-              locationStr = hasPreciseLocation
-                ? `${liveCityName} (${Number(liveLatVal).toFixed(4)}° N, ${Number(liveLngVal).toFixed(4)}° E)`
-                : liveCityName;
+              locationStr = `${liveCityName} (${Number(liveLatVal).toFixed(4)}° N, ${Number(liveLngVal).toFixed(4)}° E)`;
               if (activeSession.riskScore >= 70 && !isQuarantined) {
                 onlineSt = 'ELEVATED_RISK';
               }
